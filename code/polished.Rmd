@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Covid Correlation with Population Density"
 output:
   html_document:
     df_print: paged
@@ -8,167 +8,98 @@ output:
 ---
 
 Set up libraries and such:
-```{r, echo=FALSE, message=FALSE}
+```{r, message=FALSE, warning = FALSE}
 library(here)
 library(readxl)
 library(tidyverse)
 library(lubridate)
-library(scales)
-library(latex2exp)
 library(countrycode)
 
-# Careful: this package is huge and has many dependencies
-library(coronavirus)
+# For data about deaths and cases
+library(COVID19)
 
 # For GGplot aestehtics
 library(extrafont)
-
+library(scales)
+library(latex2exp)
 ```
 
+## Research Question: Does population density correlate with COVID-19 deaths or cases?
 
-I'd like to read in popualtion count and population density. For convienance later, I'll join them now.
+It seems logical that with a transmutable disease, such as the highly-infectious coronavrius, that a higher population desnity would facillitate higher cases or deaths. I'd like to explore this theory in the data. 
 
-The densities come from [UN Population Dynamics](https://population.un.org/wpp/Download/Standard/Population/) and are measured in 1000s.
+First, I'll read in population densities for 264 countries. This data is static throughout 2020, such that the density for January 1st is the reported the same as December 31. This may not be true, but country-wide populaiton count is not a particuarly high-frequency time series, so I'm grateful we have any metric whatsoever. 
 
-The population count from [US Census yearly estimates](https://www.census.gov/data/datasets/time-series/demo/popest/2010s-total-cities-and-towns.html), data [found here](https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/national/totals/) and is measured in 1000s
-```{r, echo=FALSE}
-
+```{r, message=FALSE, warning = FALSE}
 # Read in densities
+# Data comes from https://population.un.org/wpp/Download/Standard/Population/ 
 density <- read_csv(here("data_input/pop_density.csv"),
                     skip = 4) %>% 
   
-  # drop everything except two, and rename while we're here
+  # drop everything except two columns, and rename while we're here
   transmute(country = `Country Name`,
             country_code = `Country Code`,
             density = `2018`) %>%
   
+  # if it doesn't have a density estimate, drop it. 
+  drop_na(density) %>% 
+  
   # Add in the numeric country code, for use late.
   mutate(country_code_num = countrycode(country_code, 
-                                  origin = "iso3c", 
-                                  destination = "iso3n",
-                                  nomatch = NA)) %>% 
+                                        origin = "iso3c", 
+                                        destination = "iso3n",
+                                        nomatch = NA)) %>% 
   identity()
 
-# Similarly, read in the full populations
-pops <- read_xlsx(here("data_input/pop_count.xlsx"),
-                       skip = 16) %>% 
-  transmute(country = `Region, subregion, country or area *`,
-            country_code_num = `Country code`,
-            population = as.numeric(`2018`)) %>% 
-  drop_na() %>% 
-  identity()
+# in developement, I also read-in population counts. This is not needed in the
+# final product, but I'll carry over the naming convention
+country_pops <- density
+```
 
-# Join them to create one tidy dataframe
-country_pops <- pops %>% 
-  left_join(density, by = "country_code_num") %>% 
+
+Next, we need to load the covid data -- notably, the number of cases and deaths.
+
+```{r}
+# See this incredible package https://cran.r-project.org/web/packages/COVID19/index.html
+
+covid_data <- COVID19::covid19(verbose = FALSE) %>% 
   
-  # The population count contains more than just countries, so drop all 
-  # rows in which there is no density.
-  drop_na()
-
-```
-
-
-Now, let's explore some data!
-```{r}
-country_pops %>% 
-  ggplot(aes(x = population, y = density)) +
-  coord_trans(x="log10", y="log10") +
-  geom_point() +
-  labs(title = "Population vs Population Density of 181 Countries",
-       subtitle = "Both axes log scaled",
-       caption = "Desnity data from UN Population Dynamics; Population data from US Census.\nGraph by Michael Boerman, https://github.com/michaelboerman") +
-  xlab(TeX("Population ($Log_{10}$)")) +
-  ylab(TeX("Population Density ($Log_{10}$)")) +
-  annotation_logticks(base= 10, sides = "lb", scaled = FALSE) +
-  theme_minimal() +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid = element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank())
-
-```
-Let's look at some numbers associated with population and population density.
-```{r}
-# Sharpiro- Wilks test for nomrality:
-#   Null hypothesis: the data are normally distributed
-#   Alternative hypothesis: the data are not normally distributed
-shapiro.test(country_pops$population)
-shapiro.test(country_pops$density)
-```
-With such a low p-value for both population and population desnity, we can safely claim we have no evidence the data appear normally distributed. There's a small chance, but not much evidence.
-
-Next, let's look at a pure pearson's correlation to see how these two move together. 
-```{r}
-cor.test(country_pops$population, country_pops$density, method = "pearson")
-```
-Look at this! The correlation is most likely 0. We have a high degree of confidence they don't move together at all. 
-
-Now for the real meat: covid cases with density.
-
-We need to gather covid data:
-```{r}
-library(COVID19)
-library(countrycode)
-covid_data <- COVID19::covid19() %>% 
+  # rename to match what we have in country_pops dataframe
   rename(country_code = id) %>% 
+  
+  # and now join using this column
   left_join(country_pops, by = "country_code") %>% 
   identity()
 
-covid_data %>% 
-  filter(date == "2020-04-08") %>% 
-  drop_na(confirmed) %>% 
-  filter(confirmed > 0) %>%
-  filter(density < 1000) %>% 
-  filter(confirmed < 40000) %>% 
-  ggplot(aes(x = deaths, y = density)) +
-  coord_trans(x = "log10", y = "log10") +
-  geom_point(na.rm = T) + 
-  # geom_smooth(na.rm = T) +
-  NULL
+# idea: pick a random date and plot density vs deaths or cases
+# covid_data %>% 
+#   group_by(date) %>% 
+#   # slice_sample(n = 1) %>% 
+#   drop_na(confirmed, deaths) %>% 
+#   head() %>% 
+#   drop_na(confirmed) %>% 
+#   filter(confirmed > 0) %>%
+#   # filter(density < 1000) %>% 
+#   # filter(confirmed < 40000) %>% 
+#   ggplot(aes(x = deaths, y = density)) +
+#   coord_trans(x = "log10", y = "log10") +
+#   geom_point(na.rm = T) + 
+#   # geom_smooth(na.rm = T) +
+#   NULL
     
 ```
 
-And for correlations:
+Now, let's look at a pure pearson's correlation to see how these two move together. 
 ```{r}
-# un surprisngly, population and confirmed cases move together
-test <- cor.test(covid_data$density, covid_data$deaths)
+cor.test(covid_data$density, covid_data$deaths, method = "pearson")
+cor.test(covid_data$density, covid_data$confirmed, method = "pearson")
 
-# shockingly, desnity and confirmed cases rarely move togehter, and if so, move opposite!
-cor.test(covid_data$density, covid_data$confirmed)
-
-date_aggregated <- 
-  covid_data %>% 
-  group_by(date) %>% 
-  mutate(date = as.Date(date),
-            new_cases = confirmed - lag(confirmed),
-            cum_cases = sum(confirmed, na.rm = T),
-            new_deaths = deaths - lag(deaths),
-            cum_deaths = sum(deaths, na.rm = T)) %>% 
-  ungroup() %>% 
-  group_by(country_code) %>% 
-  mutate(pop_density = sum(density)) %>% 
-  ungroup() %>% 
-  select(date, new_cases, cum_cases, new_deaths, cum_deaths)
-
-n_dates <- length(date_aggregated$date)
-correlation_upto <- data.frame("date" = date_aggregated$date,
-                               "correlation" = rep(NA, n_dates))
-
-# What about plotting correlations over time?
-for (i in 1:n_dates) {
-    
-    correlation_upto$correlation[i] <-  cor(date_aggregated$density[1:i], 
-                                            date_aggregated$cum_cases[1:i], 
-                                            use = "complete.obs")
-}
-  
-date_aggregated %>% 
-  ggplot(aes(x=date)) +
-  geom_line(aes(y = cum_cases))
 ```
+Look at this! The correlation, in both cases, is most likely 0. We have a high degree of confidence they don't move together at all. 
 
+However, this is aggregated acros *all* dates. Maybe the correlation *was* high, but with better lockdown measures or vaccine distribution, the correlation changes over time. 
 
+Let's grab each correlation for a given date. In this dataframe, we have between 175 and 200 countries with complete data for any given date. This should be large enough to support a correlation test. 
 ```{r}
 
 # Grab the individual dates out of our long dataframe
@@ -207,16 +138,14 @@ date_aggregated %>%
 ```
 
 Now, let's plot!
-```{r}
+```{r, warning=FALSE, message = FALSE}
 # plot for correlation between pop density adn deaths
-variable_to_plot <- "death_cor"
-
 cors_over_time %>% 
   ggplot(aes(x = date))+
-  geom_line(aes(y = get(variable_to_plot))) + 
+  geom_line(aes(y = death_cor)) + 
   theme_minimal() +
   geom_hline(yintercept = 0)+
-  geom_hline(yintercept = mean(get(cors_over_time$`variable_to_plot`)),
+  geom_hline(yintercept = mean(cors_over_time$death_cor),
              linetype = "dashed", color = "gray")+
   scale_y_continuous(expand = expand_scale(mult = 0),
                      limits = c(-0.25, 0)) +
@@ -224,16 +153,16 @@ cors_over_time %>%
   labs(title = "Correlation between Population Density and COVID Deaths",
        subtitle = "Filtered by date",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
-  theme(text = element_text(family="TT Times New Roman"),
+  ylab("Correlation") +
+  theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
-        axis.title.y = element_text("Correlation"),
-        axis.line.y = element_line())
+        axis.line.y = element_line()) +
+  ggsave(filename = here("plots/cor_density_deaths.jpg"))
 ```
 
 Repeat, but for covid cases:
 ```{r}
-
-
+# Likewise, but for cases
 cors_over_time %>% 
   ggplot(aes(x = date))+
   geom_line(aes(y = case_cor)) + 
@@ -244,11 +173,13 @@ cors_over_time %>%
   scale_y_continuous(expand = expand_scale(mult = 0),
                      limits = c(-0.25, 0)) +
   scale_x_date(expand = expand_scale(mult = 0)) +
-  labs(title = "Correlation between Population Density and COVID Deaths",
+  labs(title = "Correlation between Population Density and COVID Cases",
        subtitle = "Filtered by date",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_text("Correlation"),
-        axis.line.y = element_line())
+  ylab("Correlation") +
+  theme(text = element_text(family="serif"),
+        axis.title.x = element_blank(),
+        axis.line.y = element_line()) +
+  ggsave(filename = here("plots/cor_density_cases.jpg"))
 ```
 
