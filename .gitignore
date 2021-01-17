@@ -4,3 +4,5 @@
 *.nb
 *.html
 *.nb.html
+*.docx
+!.gitkeep
