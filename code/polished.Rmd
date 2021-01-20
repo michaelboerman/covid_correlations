@@ -83,7 +83,7 @@ covid_data <- COVID19::covid19(verbose = FALSE) %>%
 #   # filter(confirmed < 40000) %>% 
 #   ggplot(aes(x = deaths, y = density)) +
 #   coord_trans(x = "log10", y = "log10") +
-#   geom_point(na.rm = T) + 
+#   geom_point(na.rm = T) +
 #   # geom_smooth(na.rm = T) +
 #   NULL
     
@@ -93,7 +93,6 @@ Now, let's look at a pure pearson's correlation to see how these two move togeth
 ```{r}
 cor.test(covid_data$density, covid_data$deaths, method = "pearson")
 cor.test(covid_data$density, covid_data$confirmed, method = "pearson")
-
 ```
 Look at this! The correlation, in both cases, is most likely 0. We have a high degree of confidence they don't move together at all. 
 
@@ -116,9 +115,11 @@ Let's grab each correlation for a given date. In this dataframe, we have between
 # initialize a DF to put in each date's correlation
   cors_over_time <- data.frame(
     "date" = unique_dates,
+    "n_countries" = rep(NA, length(unique_dates)),
     "death_cor" = rep(NA, length(unique_dates)),
     "case_cor" = rep(NA, length(unique_dates))
     )
+  
 # for loop for calculating correlation per date
   for (i in 1:length(unique_dates)) {
     
@@ -133,31 +134,47 @@ Let's grab each correlation for a given date. In this dataframe, we have between
     # insert correlation between pop density and confirmed cases
     cors_over_time$case_cor[i] <- cor(filtered_date_data$density, filtered_date_data$confirmed, use = "complete.obs")
     
+    # insert the number of countries in the sampled date
+    cors_over_time$n_countries[i] <- nrow(filtered_date_data)
+  
   }
 
+  
 ```
 
 Now, let's plot!
 ```{r, warning=FALSE, message = FALSE}
-# plot for correlation between pop density adn deaths
+# Set up with parameters so that I don't have to maintain a bunch of similar code.
+# plot for correlation between pop density and deaths
+
+series_covid <- c("death_cor", "case_cor")
+series_title <- c("Deaths", "Cases")
+series_means <- c(mean(cors_over_time$death_cor),
+           mean(cors_over_time$case_cor))
+
+for (i in length(series_covid)) {
 cors_over_time %>% 
   ggplot(aes(x = date))+
-  geom_line(aes(y = death_cor)) + 
+  geom_line(aes(y = !! sym(series_covid[i]))) + 
   theme_minimal() +
   geom_hline(yintercept = 0)+
-  geom_hline(yintercept = mean(cors_over_time$death_cor),
+  geom_hline(yintercept = series_means[i],
              linetype = "dashed", color = "gray")+
   scale_y_continuous(expand = expand_scale(mult = 0),
                      limits = c(-0.25, 0)) +
-  scale_x_date(expand = expand_scale(mult = 0)) +
-  labs(title = "Correlation between Population Density and COVID Deaths",
-       subtitle = "Filtered by date",
+  scale_x_date(expand = expand_scale(mult = 0),
+               date_breaks = "2 months",
+               date_labels = "%B",
+               minor_breaks = "1 month") +
+  labs(title = paste0("Correlation between Population Density and COVID ", series_title),
+       subtitle = "Each correlation shown is the calculated using approximately 200 countries for that given date.",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line.y = element_line()) +
-  ggsave(filename = here("plots/cor_density_deaths.jpg"))
+  ggsave(filename = here(paste0("plots/cor_density_", series_title[i], ".jpg")))
+}
 ```
 
 Repeat, but for covid cases:
