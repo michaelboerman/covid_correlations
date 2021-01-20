@@ -100,14 +100,13 @@ However, this is aggregated acros *all* dates. Maybe the correlation *was* high,
 
 Let's grab each correlation for a given date. In this dataframe, we have between 175 and 200 countries with complete data for any given date. This should be large enough to support a correlation test. 
 ```{r}
-
 # Grab the individual dates out of our long dataframe
   unique_dates <- unique(covid_data$date)
 
 # sort by date, such that Jan 2021 will come at the end, not beginning
   unique_dates <- unique_dates[order(unique_dates)]
 
-# I can't wait for R 4.1 native pipes... :)
+# (I can't wait for R 4.1 native pipes... :) )
 
 # initialize a DF to put in each date's correlation
   cors_over_time <- data.frame(
@@ -175,12 +174,12 @@ cors_over_time %>%
   geom_hline(yintercept = series_means,
              linetype = "dashed", color = "gray")+
   scale_y_continuous(expand = expand_scale(mult = 0),
-                     limits = c(-0.25, 0)) +
+                     limits = c(-0.25, 0.25)) +
   scale_x_date(expand = expand_scale(mult = 0),
                date_breaks = "2 months",
                date_labels = "%B",
                minor_breaks = "1 month") +
-  labs(title = paste0("Correlation between Population Density and COVID ", series_title),
+  labs(title = paste0("Correlation between Country-Level Population Density and COVID ", series_title),
        subtitle = "Each correlation shown is calculated with countries with deaths for that given date.\nThis starts at 10 and increases to, and hovers around, 175 by May 2020.",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
