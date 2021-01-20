@@ -96,7 +96,7 @@ cor.test(covid_data$density, covid_data$confirmed, method = "pearson")
 ```
 Look at this! The correlation, in both cases, is most likely 0. We have a high degree of confidence they don't move together at all. 
 
-However, this is aggregated acros *all* dates. Maybe the correlation *was* high, but with better lockdown measures or vaccine distribution, the correlation changes over time. 
+However, this is aggregated acros *all* dates. Maybe the correlation *was* high, but with better lockdown measures or vaccine distribution, the correlation changes over time. And it's bad practice to take correlations across data that are independent. I don't have to run time series on each country to know there is serial correlation here.
 
 Let's grab each correlation for a given date. In this dataframe, we have between 175 and 200 countries with complete data for any given date. This should be large enough to support a correlation test. 
 ```{r}
@@ -107,22 +107,15 @@ Let's grab each correlation for a given date. In this dataframe, we have between
 # sort by date, such that Jan 2021 will come at the end, not beginning
   unique_dates <- unique_dates[order(unique_dates)]
 
-# skip Jan 2020
-  unique_dates <- unique_dates[33:length(unique_dates)-1]
-  
 # I can't wait for R 4.1 native pipes... :)
 
 # initialize a DF to put in each date's correlation
   cors_over_time <- data.frame(
     "date" = unique_dates,
-    "n_countries" = rep(NA, length(unique_dates)),
     "death_cor" = rep(NA, length(unique_dates)),
     "case_cor" = rep(NA, length(unique_dates))
     )
   
-# instead of a for loop, let's use R to its fullest!
-# list of dates:
-
 # for loop for calculating correlation per date
   for (i in 1:length(unique_dates)) {
     
@@ -138,51 +131,35 @@ Let's grab each correlation for a given date. In this dataframe, we have between
     cors_over_time$case_cor[i] <- cor(filtered_date_data$density, filtered_date_data$confirmed, use = "complete.obs")
     
     # insert the number of countries in the sampled date
-    cors_over_time$n_countries[i] <- nrow(filtered_date_data)
-  
+    cors_over_time$n_countries_deaths[i] <- 
+      filtered_date_data %>% 
+      drop_na(deaths) %>% 
+      nrow()
   }
 
+# Early on in 2020, there are very few countries with deaths.
+# A correlation on just a few data points is not much of a correlation at all, so I will filter these out. 
+# Cant do a simple filter, because deaths are NOT non-decreasing. 
+# I don't want gaps in a time series!
+
+# Find the first time there are at least 10 countries:
+cutoff <- 
+  cors_over_time %>% 
+    arrange(n_countries_deaths) %>% 
+    filter(n_countries_deaths >=10) %>% 
+    head(n=1) %>% 
+    pull(date) %>% 
+    ymd()
+
+# and then re-assign only dates above this cutoff limit
+cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
   
 ```
 
+
 Now, let's plot!
-```{r, warning=FALSE, message = FALSE}
-# Set up with parameters so that I don't have to maintain a bunch of similar code.
-# plot for correlation between pop density and deaths
-
-series_covid <- c("death_cor", "case_cor")
-series_title <- c("Deaths", "Cases")
-series_means <- c(mean(cors_over_time$death_cor),
-           mean(cors_over_time$case_cor))
-
-for (i in length(series_covid)) {
-cors_over_time %>% 
-  ggplot(aes(x = date))+
-  geom_line(aes(y = !! sym(series_covid[i]))) + 
-  theme_minimal() +
-  geom_hline(yintercept = 0)+
-  geom_hline(yintercept = series_means[i],
-             linetype = "dashed", color = "gray")+
-  scale_y_continuous(expand = expand_scale(mult = 0),
-                     limits = c(-0.25, 0)) +
-  scale_x_date(expand = expand_scale(mult = 0),
-               date_breaks = "2 months",
-               date_labels = "%B",
-               minor_breaks = "1 month") +
-  labs(title = paste0("Correlation between Population Density and COVID ", series_title[i]),
-       subtitle = "Each correlation shown is the calculated using approximately 200 countries for that given date.",
-       caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
-  ylab("Correlation") +
-  theme(text = element_text(family="serif"),
-        axis.title.x = element_blank(),
-        axis.line.y = element_line()) +
-  ggsave(filename = here(paste0("plots/cor_density_", series_title[i], ".jpg")))
-}
-```
-
-Repeat, but for covid cases:
 ```{r}
-# Now let's do away iwth icky for loop
+# Now let's do away with the icky for loop
 pmap(list(
       series_covid <- c("death_cor", "case_cor"),
       series_title <- c("Deaths", "Cases"),
@@ -204,7 +181,8 @@ cors_over_time %>%
                date_labels = "%B",
                minor_breaks = "1 month") +
   labs(title = paste0("Correlation between Population Density and COVID ", series_title),
-       subtitle = "Each correlation shown is the calculated using approximately 200 countries for that given date.",
+       subtitle = "Each correlation shown is the calculated the number of countries with deaths for that given date. \n
+       This starts at 10 and increases to, and hovers around, 175 by May 2020.",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
   theme(text = element_text(family="serif"),
