@@ -181,8 +181,7 @@ cors_over_time %>%
                date_labels = "%B",
                minor_breaks = "1 month") +
   labs(title = paste0("Correlation between Population Density and COVID ", series_title),
-       subtitle = "Each correlation shown is the calculated the number of countries with deaths for that given date. \n
-       This starts at 10 and increases to, and hovers around, 175 by May 2020.",
+       subtitle = "Each correlation shown is calculated with countries with deaths for that given date.\nThis starts at 10 and increases to, and hovers around, 175 by May 2020.",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
   theme(text = element_text(family="serif"),
