@@ -170,12 +170,21 @@ pmap(list(
       ),
     .f = function(series_covid, series_title, series_means) { 
 cors_over_time %>% 
+        
+  # remove last two obs, since not all countries have results.
+  head(-2) %>% 
+        
+  # continue with plotting
   ggplot(aes(x = date))+
   geom_line(aes(y = !! sym(series_covid))) + 
   theme_minimal() +
   geom_hline(yintercept = 0)+
   geom_hline(yintercept = series_means,
-             linetype = "dashed", color = "gray")+
+             linetype = "dashed", color = "gray") +
+  annotate("text", 
+           x = as.Date("2020-12-24"), y = -.065, 
+           size = 3.5, color = "grey", 
+           label = paste0("Average: ", round(series_means, 3))) +
   scale_y_continuous(expand = expansion(mult=0),
                      limits = c(-0.25, 0.25)) +
   scale_x_date(expand = expansion(mult = 0),
@@ -183,23 +192,26 @@ cors_over_time %>%
                date_labels = "%B",
                minor_breaks = "1 month") +
   labs(title = paste0("Correlation between Country-Level Population Density and COVID ", series_title),
-       subtitle = "Each correlation shown is calculated with countries with deaths for that given date.\nThis starts at 10 and increases to, and hovers around, 175 by May 2020.",
+       subtitle = "Each correlation shown is calculated using data just for that date (not cumulative).",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line.y = element_line()) +
-  ggsave(filename = here(paste0("plots/cor_density_", series_title, ".jpg"))) +
+  ggsave(filename = here(paste0("plots/cor_density_", series_title, ".jpg")), width = 12, height = 6) +
   NULL
-      
-      
-    })
+})
 ```
 
 I'd like to plot the number of countries used for each correlation. This could be included on the above plots using a secondary axis (right side), but I don't want to make it too messy or convoluted. I can show the same info using the same axis and styling.
 
 ```{r}
 cors_over_time %>% 
+          
+  # remove last two obs, since not all countries have results.
+  head(-2) %>% 
+        
+  # continue with plotting
   ggplot(aes(x = date))+
   geom_line(aes(y = n_countries_deaths)) + 
   theme_minimal() +
@@ -216,6 +228,6 @@ cors_over_time %>%
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line = element_line()) +
-  ggsave(filename = here("plots/cor_n_countries.jpg")) +
+  ggsave(filename = here("plots/cor_n_countries.jpg"), width = 12, height = 6) +
   NULL
 ```
