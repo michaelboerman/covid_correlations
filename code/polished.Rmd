@@ -120,6 +120,9 @@ Let's grab each correlation for a given date. In this dataframe, we have between
     "case_cor" = rep(NA, length(unique_dates))
     )
   
+# instead of a for loop, let's use R to its fullest!
+# list of dates:
+
 # for loop for calculating correlation per date
   for (i in 1:length(unique_dates)) {
     
@@ -166,7 +169,7 @@ cors_over_time %>%
                date_breaks = "2 months",
                date_labels = "%B",
                minor_breaks = "1 month") +
-  labs(title = paste0("Correlation between Population Density and COVID ", series_title),
+  labs(title = paste0("Correlation between Population Density and COVID ", series_title[i]),
        subtitle = "Each correlation shown is the calculated using approximately 200 countries for that given date.",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
@@ -179,24 +182,36 @@ cors_over_time %>%
 
 Repeat, but for covid cases:
 ```{r}
-# Likewise, but for cases
+# Now let's do away iwth icky for loop
+pmap(list(
+      series_covid <- c("death_cor", "case_cor"),
+      series_title <- c("Deaths", "Cases"),
+      series_means <- c(mean(cors_over_time$death_cor),
+           mean(cors_over_time$case_cor))
+      ),
+    .f = function(series_covid, series_title, series_means) { 
 cors_over_time %>% 
   ggplot(aes(x = date))+
-  geom_line(aes(y = case_cor)) + 
+  geom_line(aes(y = !! sym(series_covid))) + 
   theme_minimal() +
   geom_hline(yintercept = 0)+
-  geom_hline(yintercept = mean(cors_over_time$case_cor),
+  geom_hline(yintercept = series_means,
              linetype = "dashed", color = "gray")+
   scale_y_continuous(expand = expand_scale(mult = 0),
                      limits = c(-0.25, 0)) +
-  scale_x_date(expand = expand_scale(mult = 0)) +
-  labs(title = "Correlation between Population Density and COVID Cases",
-       subtitle = "Filtered by date",
+  scale_x_date(expand = expand_scale(mult = 0),
+               date_breaks = "2 months",
+               date_labels = "%B",
+               minor_breaks = "1 month") +
+  labs(title = paste0("Correlation between Population Density and COVID ", series_title),
+       subtitle = "Each correlation shown is the calculated using approximately 200 countries for that given date.",
        caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line.y = element_line()) +
-  ggsave(filename = here("plots/cor_density_cases.jpg"))
+  ggsave(filename = here(paste0("plots/cor_density_", series_title, ".jpg")))
+      
+    })
 ```
 
