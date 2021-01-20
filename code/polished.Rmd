@@ -8,6 +8,7 @@ output:
 ---
 
 Set up libraries and such:
+
 ```{r, message=FALSE, warning = FALSE}
 library(here)
 library(readxl)
@@ -26,9 +27,9 @@ library(latex2exp)
 
 ## Research Question: Does population density correlate with COVID-19 deaths or cases?
 
-It seems logical that with a transmutable disease, such as the highly-infectious coronavrius, that a higher population desnity would facillitate higher cases or deaths. I'd like to explore this theory in the data. 
+It seems logical that with a transmutable disease, such as the highly-infectious coronavrius, that a higher population density would facilitate higher cases or deaths. I'd like to explore this theory in the data.
 
-First, I'll read in population densities for 264 countries. This data is static throughout 2020, such that the density for January 1st is the reported the same as December 31. This may not be true, but country-wide populaiton count is not a particuarly high-frequency time series, so I'm grateful we have any metric whatsoever. 
+First, I'll read in population densities for 264 countries. This data is static throughout 2020, such that the density for January 1st is the reported the same as December 31. This may not be true, but country-wide population count is not a particularly high-frequency time series, so I'm grateful we have any metric whatsoever.
 
 ```{r, message=FALSE, warning = FALSE}
 # Read in densities
@@ -55,7 +56,6 @@ density <- read_csv(here("data_input/pop_density.csv"),
 # final product, but I'll carry over the naming convention
 country_pops <- density
 ```
-
 
 Next, we need to load the covid data -- notably, the number of cases and deaths.
 
@@ -89,16 +89,19 @@ covid_data <- COVID19::covid19(verbose = FALSE) %>%
     
 ```
 
-Now, let's look at a pure pearson's correlation to see how these two move together. 
+Now, let's look at a pure pearson's correlation to see how these two move together.
+
 ```{r}
 cor.test(covid_data$density, covid_data$deaths, method = "pearson")
 cor.test(covid_data$density, covid_data$confirmed, method = "pearson")
 ```
-Look at this! The correlation, in both cases, is most likely 0. We have a high degree of confidence they don't move together at all. 
 
-However, this is aggregated acros *all* dates. Maybe the correlation *was* high, but with better lockdown measures or vaccine distribution, the correlation changes over time. And it's bad practice to take correlations across data that are independent. I don't have to run time series on each country to know there is serial correlation here.
+Look at this! The correlation, in both cases, is most likely 0. We have a high degree of confidence they don't move together at all.
 
-Let's grab each correlation for a given date. In this dataframe, we have between 175 and 200 countries with complete data for any given date. This should be large enough to support a correlation test. 
+However, this is aggregated across *all* dates. Maybe the correlation *was* high, but with better lockdown measures or vaccine distribution, the correlation changes over time. And it's bad practice to take correlations across data that are independent. I don't have to run time series on each country to know there is serial correlation here.
+
+Let's grab each correlation for a given date. In this dataframe, we have between 175 and 200 countries with complete data for any given date. This should be large enough to support a correlation test.
+
 ```{r}
 # Grab the individual dates out of our long dataframe
   unique_dates <- unique(covid_data$date)
@@ -141,11 +144,11 @@ Let's grab each correlation for a given date. In this dataframe, we have between
 # Cant do a simple filter, because deaths are NOT non-decreasing. 
 # I don't want gaps in a time series!
 
-# Find the first time there are at least 10 countries:
+# Find the first time there are at least 15 countries:
 cutoff <- 
   cors_over_time %>% 
     arrange(n_countries_deaths) %>% 
-    filter(n_countries_deaths >=10) %>% 
+    filter(n_countries_deaths >=15) %>% 
     head(n=1) %>% 
     pull(date) %>% 
     ymd()
@@ -155,8 +158,8 @@ cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
   
 ```
 
-
 Now, let's plot!
+
 ```{r}
 # Now let's do away with the icky for loop
 pmap(list(
@@ -173,9 +176,9 @@ cors_over_time %>%
   geom_hline(yintercept = 0)+
   geom_hline(yintercept = series_means,
              linetype = "dashed", color = "gray")+
-  scale_y_continuous(expand = expand_scale(mult = 0),
+  scale_y_continuous(expand = expansion(mult=0),
                      limits = c(-0.25, 0.25)) +
-  scale_x_date(expand = expand_scale(mult = 0),
+  scale_x_date(expand = expansion(mult = 0),
                date_breaks = "2 months",
                date_labels = "%B",
                minor_breaks = "1 month") +
@@ -186,8 +189,33 @@ cors_over_time %>%
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line.y = element_line()) +
-  ggsave(filename = here(paste0("plots/cor_density_", series_title, ".jpg")))
+  ggsave(filename = here(paste0("plots/cor_density_", series_title, ".jpg"))) +
+  NULL
+      
       
     })
 ```
 
+I'd like to plot the number of countries used for each correlation. This could be included on the above plots using a secondary axis (right side), but I don't want to make it too messy or convoluted. I can show the same info using the same axis and styling.
+
+```{r}
+cors_over_time %>% 
+  ggplot(aes(x = date))+
+  geom_line(aes(y = n_countries_deaths)) + 
+  theme_minimal() +
+  scale_y_continuous(expand = expansion(mult=0),
+                     limits = c(0, 200)) +
+  scale_x_date(expand = expansion(mult = 0),
+               date_breaks = "2 months",
+               date_labels = "%B",
+               minor_breaks = "1 month") +
+  labs(title = "Number of Countries used for Each Correlation",
+       subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with deaths in at least 15 countries."),
+       caption = "Source: Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
+  ylab("Number of Countries") +
+  theme(text = element_text(family="serif"),
+        axis.title.x = element_blank(),
+        axis.line = element_line()) +
+  ggsave(filename = here("plots/cor_n_countries.jpg")) +
+  NULL
+```
