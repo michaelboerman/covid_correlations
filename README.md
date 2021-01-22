@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # covid_correlations
 This repository supports the article written on Medium about correaltion between population desnity and COVID deaths or cases. 
 
@@ -6,3 +7,7 @@ I have included two Rmd files: one rough draft as I explored the data, and one p
 ![](plots/cor_density_deaths.jpg)
 ![](plots/cor_density_cases.jpg)
 ![](plots/cor_n_countries.jpg)
+=======
+# covid_correlations_us_counties
+ correlation between population density and covid metrics using US county-level data
+>>>>>>> covid_correlations_us_counties/main

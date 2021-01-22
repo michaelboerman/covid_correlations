@@ -1,0 +1,253 @@
+---
+title: "US Counties"
+output: html_notebook
+---
+
+Scratch for now, but will turn into correlation for counties <https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv>
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+options(tidyverse.quiet = TRUE)
+library(plyr)
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(rvest)
+library(here)
+```
+
+Read in the county population and area data:
+
+```{r}
+
+# first, grab all the 50 state url
+state_urls <- paste0(
+  "https://tigerweb.geo.census.gov/tigerwebmain/Files/tab20/tigerweb_tab20_county_2010_",
+  tolower(state.abb),
+  ".html"
+)
+
+# for some reason, data on GA, HI, and ID don't exist...
+state_urls <- state_urls[-c(10:12)]
+
+# these are displayed as an html table, so use `rvest` to translate to dataframe.
+county_areas_list <-
+  lapply(state_urls, function(url) {
+    (
+      as.data.frame(html_table(read_html(url), fill = TRUE)) %>%
+        select(BASENAME, NAME, POP100, AREALAND) %>%
+        mutate(AREALAND = AREALAND / 2, 589, 988) %>% # square meters to square miles conversion
+        mutate(pop_density = POP100 / AREALAND)
+    )
+  })
+
+names(county_areas_list) <- state.name[-c(10:12)]
+
+# Now, I'd like to turn this list into a dataframe
+# I prefer this tidy call over a do.call
+county_areas <- plyr::ldply(county_areas_list, data.frame) %>%
+  select(-c(X589, X988, NAME, POP100, AREALAND)) %>%
+  dplyr::rename(
+    state = .id,
+    county = BASENAME,
+  ) %>%
+  identity() # fin
+```
+
+Next, read in the county covid data:
+
+```{r}
+covid <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv") %>%
+
+  # get rid of some of these identifiers. Would be nice to join on FIPS,
+  # but my county population area doesn't have FIPS!
+  select(-c(UID, iso2, iso3, code3, FIPS, Country_Region, Lat, Long_, Combined_Key)) %>%
+  dplyr::rename(
+    county = Admin2,
+    state = Province_State
+  ) %>%
+
+  # Recall that there is no population density data for thise states :(
+  filter(!state %in% c("Georgia", "Florida", "Idaho")) %>%
+  identity()
+
+
+# Split this into a list, with one element per state:
+# covid_list <- split(covid, covid$Province_State)
+```
+
+Now, we have two dataframes and can join them together!
+
+```{r}
+county_level_data <- plyr::join(
+  x = county_areas,
+  y = covid,
+  by = c("county", "state"),
+  type = "right",
+  match = "all"
+) %>%
+
+  # the covid data contains some US territories. Drop any rows with no pop data
+  drop_na(pop_density) %>%
+
+  # make it long instead of wide
+  pivot_longer(
+    cols = !c("county", "state", "pop_density"),
+    names_to = "date",
+    values_to = "cases"
+  ) %>%
+
+  # turn the new column type
+  mutate(date = as.Date(date, "%m/%d/%y")) %>%
+
+  identity()
+```
+
+mess with plots
+
+```{r}
+county_level_data %>%
+  ggplot(aes(x = date, y = cases)) +
+  geom_line(aes(color = state)) +
+  scale_x_date(
+    expand = expansion(mult = 0),
+    date_breaks = "2 months",
+    date_labels = "%B",
+    minor_breaks = "1 month"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  NULL
+```
+
+Now let's do our usual correlations for each date.
+
+```{r}
+# Grab the individual dates out of our long dataframe
+unique_dates <- unique(county_level_data$date)
+
+# These are already in order :)
+
+# initialize a DF to put in each date's correlation
+cors_over_time <- data.frame(
+  "date" = unique_dates,
+  "case_cor" = rep(NA, length(unique_dates))
+)
+
+# for loop for calculating correlation per date
+for (i in 1:length(unique_dates)) {
+
+  # grab the data frame for that date i
+  filtered_date_data <- county_level_data %>%
+    filter(date == unique_dates[i]) %>%
+    identity()
+
+  # insert correlation between pop density and confirmed cases
+  cors_over_time$case_cor[i] <- cor(filtered_date_data$pop_density, filtered_date_data$cases, use = "complete.obs")
+
+  # insert the number of countries in the sampled date
+  cors_over_time$n_counties_cases[i] <-
+    filtered_date_data %>%
+    drop_na(cases) %>%
+    filter(cases > 0) %>%
+    nrow()
+}
+
+# Early on in 2020, there are very few counties with cases
+# A correlation on just a few data points is not much of a correlation at all, so I will filter these out.
+# Cant do a simple filter, because deaths are NOT non-decreasing.
+# I don't want gaps in a time series!
+
+# Find the first time there are at least 20 counties:
+cutoff <-
+  cors_over_time %>%
+  arrange(n_counties_cases) %>%
+  filter(n_counties_cases >= 20) %>%
+  head(n = 1) %>%
+  pull(date) %>%
+  ymd()
+
+# and then re-assign only dates above this cutoff limit
+cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
+```
+
+Now, for the fun part: plotting!
+
+```{r}
+cors_over_time %>%
+
+  # remove last two obs, since some counties delay.
+  head(-2) %>%
+
+  # continue with plotting
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = case_cor)) +
+  theme_minimal() +
+  geom_hline(yintercept = 0) +
+  geom_hline(
+    yintercept = mean(cors_over_time$case_cor),
+    linetype = "dashed", color = "gray"
+  ) +
+  annotate("text",
+    x = as.Date("2020-12-24"), y = .45,
+    size = 3.5, color = "grey",
+    label = paste0("Average: ", round(mean(cors_over_time$case_cor), 3))
+  ) +
+  scale_y_continuous(expand = expansion(mult = 0), ) +
+  scale_x_date(
+    expand = expansion(mult = 0),
+    date_breaks = "2 months",
+    date_labels = "%B",
+    minor_breaks = "1 month"
+  ) +
+  labs(
+    title = paste0("Correlation Population Density and COVID Cases over each US County"),
+    subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from FL, GA, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
+  ) +
+  ylab("Correlation") +
+  theme(
+    text = element_text(family = "serif"),
+    axis.title.x = element_blank(),
+    axis.line.y = element_line()
+  ) +
+  ggsave(filename = here(paste0("plots/county_cor_density_cases.jpg")), width = 12, height = 6) +
+  NULL
+```
+
+Plot similar but for just he number of counties
+
+```{r}
+cors_over_time %>%
+
+  # remove last two obs, since not all countries have results.
+  head(-2) %>%
+
+  # continue with plotting
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = n_counties_cases)) +
+  theme_minimal() +
+  scale_y_continuous(
+    expand = expansion(mult = 0),
+    limits = c(0, 3000)
+  ) +
+  scale_x_date(
+    expand = expansion(mult = 0),
+    date_breaks = "2 months",
+    date_labels = "%B",
+    minor_breaks = "1 month"
+  ) +
+  labs(
+    title = "Number of Counties used for Each Correlation",
+    subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with cases in at least 20 counties."),
+    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from FL, GA, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
+  ) +
+  ylab("Number of Counties") +
+  theme(
+    text = element_text(family = "serif"),
+    axis.title.x = element_blank(),
+    axis.line = element_line()
+  ) +
+  ggsave(filename = here("plots/cor_n_counties.jpg"), width = 12, height = 6) +
+  NULL
+```
