@@ -220,15 +220,15 @@ cors_over_time %>%
   geom_line(aes(y = n_counties_cases)) + 
   theme_minimal() +
   scale_y_continuous(expand = expansion(mult=0),
-                     breaks = ) +
+                     limits = c(0, 3000)) +
   scale_x_date(expand = expansion(mult = 0),
                date_breaks = "2 months",
                date_labels = "%B",
                minor_breaks = "1 month") +
-  labs(title = "Number of Countries used for Each Correlation",
+  labs(title = "Number of Counties used for Each Correlation",
        subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with cases in at least 20 counties."),
               caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from FL, GA, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date)-2)) +
-  ylab("Number of Countries") +
+  ylab("Number of Counties") +
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line = element_line()) +
