@@ -191,9 +191,9 @@ cors_over_time %>%
                date_breaks = "2 months",
                date_labels = "%B",
                minor_breaks = "1 month") +
-  labs(title = paste0("Correlation between Country-Level Population Density and COVID ", series_title),
-       subtitle = "Each correlation shown is calculated using data just for that date (not cumulative).",
-       caption = "Source: UN Population Dynamics, Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
+  labs(title = paste0("Correlation between Population Density and COVID ", series_title, " Across Countries"),
+       subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+       caption = "Source: UN Population Dynamics; Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Correlation") +
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
@@ -222,7 +222,7 @@ cors_over_time %>%
                date_labels = "%B",
                minor_breaks = "1 month") +
   labs(title = "Number of Countries used for Each Correlation",
-       subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with deaths in at least 15 countries."),
+       subtitle = paste0("Data starts on ", min(cors_over_time$date), " , which is the first day with deaths in at least 15 countries."),
        caption = "Source: Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
   ylab("Number of Countries") +
   theme(text = element_text(family="serif"),
@@ -231,3 +231,4 @@ cors_over_time %>%
   ggsave(filename = here("plots/cor_n_countries.jpg"), width = 12, height = 6) +
   NULL
 ```
+
