@@ -1,5 +1,7 @@
 # User-specified
 *.nb.html
+*.nb
+*.html
 
 # History files
 .Rhistory
