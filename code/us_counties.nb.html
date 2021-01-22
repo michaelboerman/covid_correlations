@@ -240,37 +240,93 @@ summary {
 <p>Scratch for now, but will turn into correlation for counties <a href="https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv" class="uri">https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv</a></p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxua25pdHI6Om9wdHNfY2h1bmskc2V0KG1lc3NhZ2UgPSBGQUxTRSwgd2FybmluZyA9IEZBTFNFKVxubGlicmFyeShoZXJlKVxubGlicmFyeSh0aWR5dmVyc2UpXG5saWJyYXJ5KHJlYWR4bClcbmxpYnJhcnkocnZlc3QpXG5gYGAifQ== -->
-<pre class="r"><code>knitr::opts_chunk$set(message = FALSE, warning = FALSE)
-library(here)
-library(tidyverse)
-library(readxl)
-library(rvest)</code></pre>
-<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Read in the covid data:</p>
+<p>Read in the county population and area data:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3RhdGUubmFtZVstYygxMDoxMildXG5cbmBgYCJ9 -->
-<pre class="r"><code>state.name[-c(10:12)]
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBOb3csIEknZCBsaWtlIHRvIHR1cm4gdGhpcyBsaXN0IGludG8gYSBkYXRhZnJhbWVcbiMgSSBwcmVmZXIgdGhpcyB0aWR5IGNhbGwgb3ZlciBhIGRvLmNhbGxcbmNvdW50eV9hcmVhcyA8LSBwbHlyOjpsZHBseShjb3VudHlfYXJlYXNfbGlzdCwgZGF0YS5mcmFtZSkgJT4lXG4gIHNlbGVjdCgtYyhYNTg5LCBYOTg4LCBOQU1FLCBQT1AxMDAsIExBTkRBUkVBKSkgJT4lXG4gIGRwbHlyOjpyZW5hbWUoXG4gICAgc3RhdGUgPSAuaWQsXG4gICAgY291bnR5ID0gQkFTRU5BTUUsXG4gICkgJT4lXG4gIGlkZW50aXR5KCkgIyBmaW5cblxuYGBgIn0= -->
+<pre class="r"><code># Now, I&#39;d like to turn this list into a dataframe
+# I prefer this tidy call over a do.call
+county_areas &lt;- plyr::ldply(county_areas_list, data.frame) %&gt;%
+  select(-c(X589, X988, NAME, POP100, LANDAREA)) %&gt;%
+  dplyr::rename(
+    state = .id,
+    county = BASENAME,
+  ) %&gt;%
+  identity() # fin
 </code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSBcIkFsYWJhbWFcIiAgICAgICAgXCJBbGFza2FcIiAgICAgICAgIFwiQXJpem9uYVwiICAgICAgICBcIkFya2Fuc2FzXCIgICAgICAgXCJDYWxpZm9ybmlhXCIgICAgXG4gWzZdIFwiQ29sb3JhZG9cIiAgICAgICBcIkNvbm5lY3RpY3V0XCIgICAgXCJEZWxhd2FyZVwiICAgICAgIFwiRmxvcmlkYVwiICAgICAgICBcIklsbGlub2lzXCIgICAgICBcblsxMV0gXCJJbmRpYW5hXCIgICAgICAgIFwiSW93YVwiICAgICAgICAgICBcIkthbnNhc1wiICAgICAgICAgXCJLZW50dWNreVwiICAgICAgIFwiTG91aXNpYW5hXCIgICAgIFxuWzE2XSBcIk1haW5lXCIgICAgICAgICAgXCJNYXJ5bGFuZFwiICAgICAgIFwiTWFzc2FjaHVzZXR0c1wiICBcIk1pY2hpZ2FuXCIgICAgICAgXCJNaW5uZXNvdGFcIiAgICAgXG5bMjFdIFwiTWlzc2lzc2lwcGlcIiAgICBcIk1pc3NvdXJpXCIgICAgICAgXCJNb250YW5hXCIgICAgICAgIFwiTmVicmFza2FcIiAgICAgICBcIk5ldmFkYVwiICAgICAgICBcblsyNl0gXCJOZXcgSGFtcHNoaXJlXCIgIFwiTmV3IEplcnNleVwiICAgICBcIk5ldyBNZXhpY29cIiAgICAgXCJOZXcgWW9ya1wiICAgICAgIFwiTm9ydGggQ2Fyb2xpbmFcIlxuWzMxXSBcIk5vcnRoIERha290YVwiICAgXCJPaGlvXCIgICAgICAgICAgIFwiT2tsYWhvbWFcIiAgICAgICBcIk9yZWdvblwiICAgICAgICAgXCJQZW5uc3lsdmFuaWFcIiAgXG5bMzZdIFwiUmhvZGUgSXNsYW5kXCIgICBcIlNvdXRoIENhcm9saW5hXCIgXCJTb3V0aCBEYWtvdGFcIiAgIFwiVGVubmVzc2VlXCIgICAgICBcIlRleGFzXCIgICAgICAgICBcbls0MV0gXCJVdGFoXCIgICAgICAgICAgIFwiVmVybW9udFwiICAgICAgICBcIlZpcmdpbmlhXCIgICAgICAgXCJXYXNoaW5ndG9uXCIgICAgIFwiV2VzdCBWaXJnaW5pYVwiIFxuWzQ2XSBcIldpc2NvbnNpblwiICAgICAgXCJXeW9taW5nXCIgICAgICAgXG4ifQ== -->
-<pre><code> [1] &quot;Alabama&quot;        &quot;Alaska&quot;         &quot;Arizona&quot;        &quot;Arkansas&quot;       &quot;California&quot;    
- [6] &quot;Colorado&quot;       &quot;Connecticut&quot;    &quot;Delaware&quot;       &quot;Florida&quot;        &quot;Illinois&quot;      
-[11] &quot;Indiana&quot;        &quot;Iowa&quot;           &quot;Kansas&quot;         &quot;Kentucky&quot;       &quot;Louisiana&quot;     
-[16] &quot;Maine&quot;          &quot;Maryland&quot;       &quot;Massachusetts&quot;  &quot;Michigan&quot;       &quot;Minnesota&quot;     
-[21] &quot;Mississippi&quot;    &quot;Missouri&quot;       &quot;Montana&quot;        &quot;Nebraska&quot;       &quot;Nevada&quot;        
-[26] &quot;New Hampshire&quot;  &quot;New Jersey&quot;     &quot;New Mexico&quot;     &quot;New York&quot;       &quot;North Carolina&quot;
-[31] &quot;North Dakota&quot;   &quot;Ohio&quot;           &quot;Oklahoma&quot;       &quot;Oregon&quot;         &quot;Pennsylvania&quot;  
-[36] &quot;Rhode Island&quot;   &quot;South Carolina&quot; &quot;South Dakota&quot;   &quot;Tennessee&quot;      &quot;Texas&quot;         
-[41] &quot;Utah&quot;           &quot;Vermont&quot;        &quot;Virginia&quot;       &quot;Washington&quot;     &quot;West Virginia&quot; 
-[46] &quot;Wisconsin&quot;      &quot;Wyoming&quot;       </code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3I6IENhbid0IHN1YnNldCBjb2x1bW5zIHRoYXQgZG9uJ3QgZXhpc3QuXG54IENvbHVtbiBgTEFOREFSRUFgIGRvZXNuJ3QgZXhpc3QuXG4ifQ== -->
+<pre><code>Error: Can&#39;t subset columns that don&#39;t exist.
+x Column `LANDAREA` doesn&#39;t exist.</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Next, read in the county covid data:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY292aWQgPC0gcmVhZF9jc3YoXCJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vQ1NTRUdJU2FuZERhdGEvQ09WSUQtMTkvbWFzdGVyL2Nzc2VfY292aWRfMTlfZGF0YS9jc3NlX2NvdmlkXzE5X3RpbWVfc2VyaWVzL3RpbWVfc2VyaWVzX2NvdmlkMTlfY29uZmlybWVkX1VTLmNzdlwiKSAlPiVcblxuICAjIGdldCByaWQgb2Ygc29tZSBvZiB0aGVzZSBpZGVudGlmaWVycy4gV291bGQgYmUgbmljZSB0byBqb2luIG9uIEZJUFMsXG4gICMgYnV0IG15IGNvdW50eSBwb3B1bGF0aW9uIGFyZWEgZG9lc24ndCBoYXZlIEZJUFMhXG4gIHNlbGVjdCgtYyhVSUQsIGlzbzIsIGlzbzMsIGNvZGUzLCBGSVBTLCBDb3VudHJ5X1JlZ2lvbiwgTGF0LCBMb25nXywgQ29tYmluZWRfS2V5KSkgJT4lXG4gIGRwbHlyOjpyZW5hbWUoXG4gICAgY291bnR5ID0gQWRtaW4yLFxuICAgIHN0YXRlID0gUHJvdmluY2VfU3RhdGVcbiAgKSAlPiVcblxuICAjIFJlY2FsbCB0aGF0IHRoZXJlIGlzIG5vIHBvcHVsYXRpb24gZGVuc2l0eSBkYXRhIGZvciB0aGlzZSBzdGF0ZXMgOihcbiAgZmlsdGVyKCFzdGF0ZSAlaW4lIGMoXCJHZW9yZ2lhXCIsIFwiRmxvcmlkYVwiLCBcIklkYWhvXCIpKSAlPiVcbiAgaWRlbnRpdHkoKVxuXG5gYGAifQ== -->
+<pre class="r"><code>covid &lt;- read_csv(&quot;https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv&quot;) %&gt;%
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIlVTIENvdW50aWVzIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KU2NyYXRjaCBmb3Igbm93LCBidXQgd2lsbCB0dXJuIGludG8gY29ycmVsYXRpb24gZm9yIGNvdW50aWVzDQpodHRwczovL2dpdGh1Yi5jb20vQ1NTRUdJU2FuZERhdGEvQ09WSUQtMTkvYmxvYi9tYXN0ZXIvY3NzZV9jb3ZpZF8xOV9kYXRhL2Nzc2VfY292aWRfMTlfdGltZV9zZXJpZXMvdGltZV9zZXJpZXNfY292aWQxOV9jb25maXJtZWRfVVMuY3N2DQoNCmBgYHtyfQ0Ka25pdHI6Om9wdHNfY2h1bmskc2V0KG1lc3NhZ2UgPSBGQUxTRSwgd2FybmluZyA9IEZBTFNFKQ0KbGlicmFyeShoZXJlKQ0KbGlicmFyeSh0aWR5dmVyc2UpDQpsaWJyYXJ5KHJlYWR4bCkNCmxpYnJhcnkocnZlc3QpDQpgYGANCg0KUmVhZCBpbiB0aGUgY292aWQgZGF0YToNCmBgYHtyfQ0KY292aWQgPC0gcmVhZF9jc3YoImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9DU1NFR0lTYW5kRGF0YS9DT1ZJRC0xOS9tYXN0ZXIvY3NzZV9jb3ZpZF8xOV9kYXRhL2Nzc2VfY292aWRfMTlfdGltZV9zZXJpZXMvdGltZV9zZXJpZXNfY292aWQxOV9jb25maXJtZWRfVVMuY3N2IikNCg0KIyBjb3VudGllcyBpcyBhIGxpdHRsZSB0cmlja3kNCiMgZmlyc3QsIGdyYWIgYWxsIHRoZSA1MCBzdGF0ZSB1cmwNCg0Kc3RhdGVfdXJscyA8LSBwYXN0ZTAoImh0dHBzOi8vdGlnZXJ3ZWIuZ2VvLmNlbnN1cy5nb3YvdGlnZXJ3ZWJtYWluL0ZpbGVzL3RhYjIwL3RpZ2Vyd2ViX3RhYjIwX2NvdW50eV8yMDEwXyIsDQogICAgICAgdG9sb3dlcihzdGF0ZS5hYmIpLA0KICAgICAgICIuaHRtbCINCikNCg0KIyBmb3Igc29tZSByZWFzb24sIGRhdGEgb24gR0EsIEhJLCBhbmQgSUQgZG9uJ3QgZXhpc3QuLi4NCnN0YXRlX3VybHMgPC0gc3RhdGVfdXJsc1stYygxMDoxMildDQoNCiMgdGhlc2UgYXJlIGRpc3BsYXllZCBhcyBhbiBodG1sIHRhYmxlLCBzbyB1c2UgYHJ2ZXN0YCB0byB0cmFuc2xhdGUgdG8gZGF0YWZyYW1lLiANCmNvdW50eV9hcmVhcyA8LSANCiAgbGFwcGx5KHN0YXRlX3VybHMsIGZ1bmN0aW9uKHVybCkgKA0KICBhcy5kYXRhLmZyYW1lKGh0bWxfdGFibGUocmVhZF9odG1sKHVybCksIGZpbGwgPSBUUlVFKSkgJT4lICANCiAgICBzZWxlY3QoQkFTRU5BTUUsIE5BTUUsIFBPUDEwMCwgQVJFQUxBTkQpICU+JSANCiAgICBtdXRhdGUoQVJFQUxBTkQgPSBBUkVBTEFORCAvIDIsNTg5LDk4OCkgJT4lICAjIHNxdWFyZSBtZXRlcnMgdG8gc3F1YXJlIG1pbGVzIGNvbnZlcnNpb24NCiAgICBtdXRhdGUocG9wX2RlbnNpdHkgPSBQT1AxMDAgLyBBUkVBTEFORCkNCiAgKQ0KKQ0KDQpuYW1lcyhjb3VudHlfYXJlYXMpIDwtIHN0YXRlLm5hbWVbLWMoMTA6MTIpXQ0KYGBgDQo=</div>
+  # get rid of some of these identifiers. Would be nice to join on FIPS,
+  # but my county population area doesn&#39;t have FIPS!
+  select(-c(UID, iso2, iso3, code3, FIPS, Country_Region, Lat, Long_, Combined_Key)) %&gt;%
+  dplyr::rename(
+    county = Admin2,
+    state = Province_State
+  ) %&gt;%
+
+  # Recall that there is no population density data for thise states :(
+  filter(!state %in% c(&quot;Georgia&quot;, &quot;Florida&quot;, &quot;Idaho&quot;)) %&gt;%
+  identity()
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUGFyc2VkIHdpdGggY29sdW1uIHNwZWNpZmljYXRpb246XG5jb2xzKFxuICAuZGVmYXVsdCA9IGNvbF9kb3VibGUoKSxcbiAgaXNvMiA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgaXNvMyA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgQWRtaW4yID0gY29sX2NoYXJhY3RlcigpLFxuICBQcm92aW5jZV9TdGF0ZSA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgQ291bnRyeV9SZWdpb24gPSBjb2xfY2hhcmFjdGVyKCksXG4gIENvbWJpbmVkX0tleSA9IGNvbF9jaGFyYWN0ZXIoKVxuKVxuU2VlIHNwZWMoLi4uKSBmb3IgZnVsbCBjb2x1bW4gc3BlY2lmaWNhdGlvbnMuXG4ifQ== -->
+<pre><code>Parsed with column specification:
+cols(
+  .default = col_double(),
+  iso2 = col_character(),
+  iso3 = col_character(),
+  Admin2 = col_character(),
+  Province_State = col_character(),
+  Country_Region = col_character(),
+  Combined_Key = col_character()
+)
+See spec(...) for full column specifications.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Now, we have two dataframes and can join them together!</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY291bnR5X2xldmVsX2RhdGEgPC0gcGx5cjo6am9pbihcbiAgeCA9IGNvdW50eV9hcmVhcyxcbiAgeSA9IGNvdmlkLFxuICBieSA9IGMoXCJjb3VudHlcIiwgXCJzdGF0ZVwiKSxcbiAgdHlwZSA9IFwicmlnaHRcIixcbiAgbWF0Y2ggPSBcImFsbFwiXG4pICU+JVxuXG4gICMgdGhlIGNvdmlkIGRhdGEgY29udGFpbnMgc29tZSBVUyB0ZXJyaXRvcmllcy4gRHJvcCBhbnkgcm93cyB3aXRoIG5vIHBvcCBkYXRhXG4gIGRyb3BfbmEocG9wX2RlbnNpdHkpICU+JVxuICBpZGVudGl0eSgpXG5cbmBgYCJ9 -->
+<pre class="r"><code>county_level_data &lt;- plyr::join(
+  x = county_areas,
+  y = covid,
+  by = c(&quot;county&quot;, &quot;state&quot;),
+  type = &quot;right&quot;,
+  match = &quot;all&quot;
+) %&gt;%
+
+  # the covid data contains some US territories. Drop any rows with no pop data
+  drop_na(pop_density) %&gt;%
+  identity()
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gYFsuZGF0YS5mcmFtZWAoeSwgYnkpIDogdW5kZWZpbmVkIGNvbHVtbnMgc2VsZWN0ZWRcbiJ9 -->
+<pre><code>Error in `[.data.frame`(y, by) : undefined columns selected</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>mess with plots</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlVTIENvdW50aWVzIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KU2NyYXRjaCBmb3Igbm93LCBidXQgd2lsbCB0dXJuIGludG8gY29ycmVsYXRpb24gZm9yIGNvdW50aWVzDQpodHRwczovL2dpdGh1Yi5jb20vQ1NTRUdJU2FuZERhdGEvQ09WSUQtMTkvYmxvYi9tYXN0ZXIvY3NzZV9jb3ZpZF8xOV9kYXRhL2Nzc2VfY292aWRfMTlfdGltZV9zZXJpZXMvdGltZV9zZXJpZXNfY292aWQxOV9jb25maXJtZWRfVVMuY3N2DQoNCmBgYHtyLCBlY2hvID0gRkFMU0V9DQprbml0cjo6b3B0c19jaHVuayRzZXQobWVzc2FnZSA9IEZBTFNFLCB3YXJuaW5nID0gRkFMU0UpDQpvcHRpb25zKHRpZHl2ZXJzZS5xdWlldCA9IFRSVUUpDQpsaWJyYXJ5KHBseXIpDQpsaWJyYXJ5KHRpZHl2ZXJzZSkNCmxpYnJhcnkocmVhZHhsKQ0KbGlicmFyeShydmVzdCkNCmxpYnJhcnkoaGVyZSkNCmBgYA0KDQpSZWFkIGluIHRoZSBjb3VudHkgcG9wdWxhdGlvbiBhbmQgYXJlYSBkYXRhOg0KYGBge3J9DQoNCiMgZmlyc3QsIGdyYWIgYWxsIHRoZSA1MCBzdGF0ZSB1cmwNCnN0YXRlX3VybHMgPC0gcGFzdGUwKA0KICAiaHR0cHM6Ly90aWdlcndlYi5nZW8uY2Vuc3VzLmdvdi90aWdlcndlYm1haW4vRmlsZXMvdGFiMjAvdGlnZXJ3ZWJfdGFiMjBfY291bnR5XzIwMTBfIiwNCiAgdG9sb3dlcihzdGF0ZS5hYmIpLA0KICAiLmh0bWwiDQopDQoNCiMgZm9yIHNvbWUgcmVhc29uLCBkYXRhIG9uIEdBLCBISSwgYW5kIElEIGRvbid0IGV4aXN0Li4uDQpzdGF0ZV91cmxzIDwtIHN0YXRlX3VybHNbLWMoMTA6MTIpXQ0KDQojIHRoZXNlIGFyZSBkaXNwbGF5ZWQgYXMgYW4gaHRtbCB0YWJsZSwgc28gdXNlIGBydmVzdGAgdG8gdHJhbnNsYXRlIHRvIGRhdGFmcmFtZS4NCmNvdW50eV9hcmVhc19saXN0IDwtDQogIGxhcHBseShzdGF0ZV91cmxzLCBmdW5jdGlvbih1cmwpIHsNCiAgICAoDQogICAgICBhcy5kYXRhLmZyYW1lKGh0bWxfdGFibGUocmVhZF9odG1sKHVybCksIGZpbGwgPSBUUlVFKSkgJT4lDQogICAgICAgIHNlbGVjdChCQVNFTkFNRSwgTkFNRSwgUE9QMTAwLCBBUkVBTEFORCkgJT4lDQogICAgICAgIG11dGF0ZShBUkVBTEFORCA9IEFSRUFMQU5EIC8gMiwgNTg5LCA5ODgpICU+JSAjIHNxdWFyZSBtZXRlcnMgdG8gc3F1YXJlIG1pbGVzIGNvbnZlcnNpb24NCiAgICAgICAgbXV0YXRlKHBvcF9kZW5zaXR5ID0gUE9QMTAwIC8gQVJFQUxBTkQpDQogICAgKQ0KICB9KQ0KDQpuYW1lcyhjb3VudHlfYXJlYXNfbGlzdCkgPC0gc3RhdGUubmFtZVstYygxMDoxMildDQoNCiMgTm93LCBJJ2QgbGlrZSB0byB0dXJuIHRoaXMgbGlzdCBpbnRvIGEgZGF0YWZyYW1lDQojIEkgcHJlZmVyIHRoaXMgdGlkeSBjYWxsIG92ZXIgYSBkby5jYWxsDQpjb3VudHlfYXJlYXMgPC0gcGx5cjo6bGRwbHkoY291bnR5X2FyZWFzX2xpc3QsIGRhdGEuZnJhbWUpICU+JQ0KICBzZWxlY3QoLWMoWDU4OSwgWDk4OCwgTkFNRSwgUE9QMTAwLCBBUkVBTEFORCkpICU+JQ0KICBkcGx5cjo6cmVuYW1lKA0KICAgIHN0YXRlID0gLmlkLA0KICAgIGNvdW50eSA9IEJBU0VOQU1FLA0KICApICU+JQ0KICBpZGVudGl0eSgpICMgZmluDQpgYGANCg0KTmV4dCwgcmVhZCBpbiB0aGUgY291bnR5IGNvdmlkIGRhdGE6DQpgYGB7cn0NCmNvdmlkIDwtIHJlYWRfY3N2KCJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vQ1NTRUdJU2FuZERhdGEvQ09WSUQtMTkvbWFzdGVyL2Nzc2VfY292aWRfMTlfZGF0YS9jc3NlX2NvdmlkXzE5X3RpbWVfc2VyaWVzL3RpbWVfc2VyaWVzX2NvdmlkMTlfY29uZmlybWVkX1VTLmNzdiIpICU+JQ0KDQogICMgZ2V0IHJpZCBvZiBzb21lIG9mIHRoZXNlIGlkZW50aWZpZXJzLiBXb3VsZCBiZSBuaWNlIHRvIGpvaW4gb24gRklQUywNCiAgIyBidXQgbXkgY291bnR5IHBvcHVsYXRpb24gYXJlYSBkb2Vzbid0IGhhdmUgRklQUyENCiAgc2VsZWN0KC1jKFVJRCwgaXNvMiwgaXNvMywgY29kZTMsIEZJUFMsIENvdW50cnlfUmVnaW9uLCBMYXQsIExvbmdfLCBDb21iaW5lZF9LZXkpKSAlPiUNCiAgZHBseXI6OnJlbmFtZSgNCiAgICBjb3VudHkgPSBBZG1pbjIsDQogICAgc3RhdGUgPSBQcm92aW5jZV9TdGF0ZQ0KICApICU+JQ0KDQogICMgUmVjYWxsIHRoYXQgdGhlcmUgaXMgbm8gcG9wdWxhdGlvbiBkZW5zaXR5IGRhdGEgZm9yIHRoaXNlIHN0YXRlcyA6KA0KICBmaWx0ZXIoIXN0YXRlICVpbiUgYygiR2VvcmdpYSIsICJGbG9yaWRhIiwgIklkYWhvIikpICU+JQ0KICBpZGVudGl0eSgpDQoNCg0KIyBTcGxpdCB0aGlzIGludG8gYSBsaXN0LCB3aXRoIG9uZSBlbGVtZW50IHBlciBzdGF0ZToNCiMgY292aWRfbGlzdCA8LSBzcGxpdChjb3ZpZCwgY292aWQkUHJvdmluY2VfU3RhdGUpDQpgYGANCg0KTm93LCB3ZSBoYXZlIHR3byBkYXRhZnJhbWVzIGFuZCBjYW4gam9pbiB0aGVtIHRvZ2V0aGVyIQ0KYGBge3J9DQpjb3VudHlfbGV2ZWxfZGF0YSA8LSBwbHlyOjpqb2luKA0KICB4ID0gY291bnR5X2FyZWFzLA0KICB5ID0gY292aWQsDQogIGJ5ID0gYygiY291bnR5IiwgInN0YXRlIiksDQogIHR5cGUgPSAicmlnaHQiLA0KICBtYXRjaCA9ICJhbGwiDQopICU+JQ0KDQogICMgdGhlIGNvdmlkIGRhdGEgY29udGFpbnMgc29tZSBVUyB0ZXJyaXRvcmllcy4gRHJvcCBhbnkgcm93cyB3aXRoIG5vIHBvcCBkYXRhDQogIGRyb3BfbmEocG9wX2RlbnNpdHkpICU+JQ0KICBpZGVudGl0eSgpDQpgYGANCg0KbWVzcyB3aXRoIHBsb3RzDQpgYGB7cn0NCg0KYGBgDQoNCg==</div>
 
 
 
