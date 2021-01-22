@@ -1,0 +1,43 @@
+---
+title: "US Counties"
+output: html_notebook
+---
+
+Scratch for now, but will turn into correlation for counties
+https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv
+
+```{r}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+library(here)
+library(tidyverse)
+library(readxl)
+library(rvest)
+```
+
+Read in the covid data:
+```{r}
+covid <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv")
+
+# counties is a little tricky
+# first, grab all the 50 state url
+
+state_urls <- paste0("https://tigerweb.geo.census.gov/tigerwebmain/Files/tab20/tigerweb_tab20_county_2010_",
+       tolower(state.abb),
+       ".html"
+)
+
+# for some reason, data on GA, HI, and ID don't exist...
+state_urls <- state_urls[-c(10:12)]
+
+# these are displayed as an html table, so use `rvest` to translate to dataframe. 
+county_areas <- 
+  lapply(state_urls, function(url) (
+  as.data.frame(html_table(read_html(url), fill = TRUE)) %>%  
+    select(BASENAME, NAME, POP100, AREALAND) %>% 
+    mutate(AREALAND = AREALAND / 2,589,988) %>%  # square meters to square miles conversion
+    mutate(pop_density = POP100 / AREALAND)
+  )
+)
+
+names(county_areas) <- state.name[-c(10:12)]
+```
