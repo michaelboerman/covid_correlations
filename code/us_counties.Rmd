@@ -3,23 +3,22 @@ title: "US Counties"
 output: html_notebook
 ---
 
-Scratch for now, but will turn into correlation for counties <https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv>
+This notebook is self-contained to produce correlations between population density and COVID case count for us counties. 
+
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 options(tidyverse.quiet = TRUE)
 library(plyr)
 library(tidyverse)
-library(readxl)
 library(lubridate)
 library(rvest)
 library(here)
 ```
 
-Read in the county population and area data:
-
+## Read County demographics
+First, we read in the county population and area data:
 ```{r}
-
 # first, grab all the 50 state url
 state_urls <- paste0(
   "https://tigerweb.geo.census.gov/tigerwebmain/Files/tab20/tigerweb_tab20_county_2010_",
@@ -30,6 +29,7 @@ state_urls <- paste0(
 # for some reason, data on GA, HI, and ID don't exist...
 state_urls <- state_urls[-c(10:12)]
 
+# next, perform a loop to actually read these urls. 
 # these are displayed as an html table, so use `rvest` to translate to dataframe.
 county_areas_list <-
   lapply(state_urls, function(url) {
@@ -44,7 +44,7 @@ county_areas_list <-
 names(county_areas_list) <- state.name[-c(10:12)]
 
 # Now, I'd like to turn this list into a dataframe
-# I prefer this tidy call over a do.call
+# I prefer this tidy function over a `do.call`
 county_areas <- plyr::ldply(county_areas_list, data.frame) %>%
   select(-c(X589, X988, NAME, POP100, AREALAND)) %>%
   dplyr::rename(
@@ -54,9 +54,10 @@ county_areas <- plyr::ldply(county_areas_list, data.frame) %>%
   identity() # fin
 ```
 
-Next, read in the county covid data:
+## Read in County Covid data
 
 ```{r}
+# From JHU CSSE github:
 covid <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv") %>%
 
   # get rid of some of these identifiers. Would be nice to join on FIPS,
@@ -67,17 +68,14 @@ covid <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/mas
     state = Province_State
   ) %>%
 
-  # Recall that there is no population density data for thise states :(
-  filter(!state %in% c("Georgia", "Florida", "Idaho")) %>%
+  # Recall that there is no population density data for these states :(
+  filter(!state %in% c("Georgia", "Hawaii", "Idaho")) %>%
   identity()
-
-
-# Split this into a list, with one element per state:
-# covid_list <- split(covid, covid$Province_State)
 ```
 
-Now, we have two dataframes and can join them together!
+## Combine Data
 
+Now, we have two dataframes -- one for county population density and one for county covid cases over time -- and can join them together!
 ```{r}
 county_level_data <- plyr::join(
   x = county_areas,
@@ -103,25 +101,9 @@ county_level_data <- plyr::join(
   identity()
 ```
 
-mess with plots
-
-```{r}
-county_level_data %>%
-  ggplot(aes(x = date, y = cases)) +
-  geom_line(aes(color = state)) +
-  scale_x_date(
-    expand = expansion(mult = 0),
-    date_breaks = "2 months",
-    date_labels = "%B",
-    minor_breaks = "1 month"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  NULL
-```
+## Calculate Correlations
 
 Now let's do our usual correlations for each date.
-
 ```{r}
 # Grab the individual dates out of our long dataframe
 unique_dates <- unique(county_level_data$date)
@@ -171,12 +153,13 @@ cutoff <-
 cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
 ```
 
-Now, for the fun part: plotting!
+## Plots
 
+Everyone's favorite part :)
 ```{r}
 cors_over_time %>%
 
-  # remove last two obs, since some counties delay.
+  # remove last two obs, since some counties delay reporting.
   head(-2) %>%
 
   # continue with plotting
@@ -203,7 +186,7 @@ cors_over_time %>%
   labs(
     title = paste0("Correlation Population Density and COVID Cases over each US County"),
     subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from FL, GA, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
+    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
   ) +
   ylab("Correlation") +
   theme(
@@ -211,12 +194,12 @@ cors_over_time %>%
     axis.title.x = element_blank(),
     axis.line.y = element_line()
   ) +
-  ggsave(filename = here(paste0("plots/county_cor_density_cases.jpg")), width = 12, height = 6) +
+  ggsave(filename = here(paste0("plots/us_cor_density_cases.jpg")), width = 12, height = 6) +
   NULL
 ```
 
-Plot similar but for just he number of counties
 
+Plot just the number of counties
 ```{r}
 cors_over_time %>%
 
@@ -240,7 +223,7 @@ cors_over_time %>%
   labs(
     title = "Number of Counties used for Each Correlation",
     subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with cases in at least 20 counties."),
-    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from FL, GA, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
+    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
   ) +
   ylab("Number of Counties") +
   theme(
@@ -248,6 +231,6 @@ cors_over_time %>%
     axis.title.x = element_blank(),
     axis.line = element_line()
   ) +
-  ggsave(filename = here("plots/cor_n_counties.jpg"), width = 12, height = 6) +
+  ggsave(filename = here("plots/us_n_counties.jpg"), width = 12, height = 6) +
   NULL
 ```

@@ -1,13 +1,10 @@
-<<<<<<< HEAD
-# covid_correlations
-This repository supports the article written on Medium about correaltion between population desnity and COVID deaths or cases. 
 
-I have included two Rmd files: one rough draft as I explored the data, and one polished. I want to include the messy, original copy for the sake of learning and exposure to the process. It's easy to see nice code on the internet and feel bad comparing to your sloppy drafts!
+# covid_correlations
+This repository supports the article written on Medium about correlation between population density and COVID deaths or cases. 
+
 
 ![](plots/cor_density_deaths.jpg)
 ![](plots/cor_density_cases.jpg)
 ![](plots/cor_n_countries.jpg)
-=======
-# covid_correlations_us_counties
- correlation between population density and covid metrics using US county-level data
->>>>>>> covid_correlations_us_counties/main
+
+There are two parallel files: one for countRies, and one for counties. In a more robust world, I may have put the plotting functions in a third script and just call them. However, in the vein of data exploration, they exist parallel.  

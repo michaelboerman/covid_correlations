@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-.RData
-.Rhistory
-*.Rhistory
-*.nb
-*.html
-*.nb.html
-!.gitkeep
-.Rproj.user
-=======
 # User-specified
 *.nb.html
 *.nb
@@ -49,4 +39,3 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
->>>>>>> covid_correlations_us_counties/main

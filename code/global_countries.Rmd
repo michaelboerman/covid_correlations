@@ -198,7 +198,7 @@ cors_over_time %>%
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line.y = element_line()) +
-  ggsave(filename = here(paste0("plots/cor_density_", series_title, ".jpg")), width = 12, height = 6) +
+  ggsave(filename = here(paste0("plots/global_cor_density_", series_title, ".jpg")), width = 12, height = 6) +
   NULL
 })
 ```
@@ -228,7 +228,7 @@ cors_over_time %>%
   theme(text = element_text(family="serif"),
         axis.title.x = element_blank(),
         axis.line = element_line()) +
-  ggsave(filename = here("plots/cor_n_countries.jpg"), width = 12, height = 6) +
+  ggsave(filename = here("plots/global_cor_countries.jpg"), width = 12, height = 6) +
   NULL
 ```
 
