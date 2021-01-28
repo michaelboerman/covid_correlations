@@ -29,7 +29,7 @@ state_urls <- paste0(
 # for some reason, data on GA, HI, and ID don't exist...
 state_urls <- state_urls[-c(10:12)]
 
-# next, perform a loop to actually read these urls. 
+# next, perform a loop to actually read these urls.
 # these are displayed as an html table, so use `rvest` to translate to dataframe.
 county_areas_list <-
   lapply(state_urls, function(url) {
@@ -234,3 +234,36 @@ cors_over_time %>%
   ggsave(filename = here("plots/us_n_counties.jpg"), width = 12, height = 6) +
   NULL
 ```
+
+Pull out just one date and plot:
+```{r}
+last_date_avail <- max(county_level_data$date) - 1
+rand_date       <- sample(county_level_data$date, size = 1)
+
+covid_one_date <-
+  county_level_data %>%
+  filter(date == last_date_avail) %>%
+  identity()
+
+corrs <- cor.test(covid_one_date$cases, covid_one_date$pop_density)
+
+covid_one_date %>%
+  drop_na(cases, pop_density) %>%
+  ggplot(aes(y = cases, x = pop_density)) +
+  geom_point() +
+  scale_y_log10() +
+  scale_x_log10() +
+  geom_smooth(method = "lm") +
+  stat_regline_equation() +
+  theme_minimal() +
+  labs(
+    title = "How do population density and COVID cases relate?",
+    subtitle = paste0("Using data on ", last_date_avail)
+  ) +
+  ylab("Confirmed Cases") +
+  xlab("Population Density") +
+  annotate("text", x = 0.1, y = 20000, 
+           label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2])) +
+  ggsave(here::here("plots/us_one_date_cases.jpg"), width = 12, height = 6)
+```
+

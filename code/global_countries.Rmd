@@ -107,8 +107,9 @@ covid_one_date %>%
   ) +
   geom_rect(xmin = 3, xmax = 10, ymin = 20, ymax = 200, fill = "blue") +
   annotate("text", x = 4, y = 20, 
-           label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2]))
-NULL
+           label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2])) +
+  ggsave(here("plots/global_one_date_cases.jpg"))
+
 ```
 
 Now, let's look at a pure pearson's correlation to see how these two move together.
