@@ -36,7 +36,7 @@ county_areas_list <-
     (
       as.data.frame(html_table(read_html(url), fill = TRUE)) %>%
         select(BASENAME, NAME, POP100, AREALAND) %>%
-        mutate(AREALAND = AREALAND / 2, 589, 988) %>% # square meters to square miles conversion
+        mutate(AREALAND = AREALAND / 2589988) %>% # square meters to square miles conversion
         mutate(pop_density = POP100 / AREALAND)
     )
   })
@@ -46,7 +46,7 @@ names(county_areas_list) <- state.name[-c(10:12)]
 # Now, I'd like to turn this list into a dataframe
 # I prefer this tidy function over a `do.call`
 county_areas <- plyr::ldply(county_areas_list, data.frame) %>%
-  select(-c(X589, X988, NAME, POP100, AREALAND)) %>%
+  select(-c(NAME, POP100, AREALAND)) %>%
   dplyr::rename(
     state = .id,
     county = BASENAME,
@@ -167,15 +167,15 @@ cors_over_time %>%
   geom_line(aes(y = case_cor)) +
   theme_minimal() +
   geom_hline(yintercept = 0) +
-  geom_hline(
-    yintercept = mean(cors_over_time$case_cor),
-    linetype = "dashed", color = "gray"
-  ) +
-  annotate("text",
-    x = as.Date("2020-12-24"), y = .45,
-    size = 3.5, color = "grey",
-    label = paste0("Average: ", round(mean(cors_over_time$case_cor), 3))
-  ) +
+  # geom_hline(
+  #   yintercept = mean(cors_over_time$case_cor),
+  #   linetype = "dashed", color = "gray"
+  # ) +
+  # annotate("text",
+  #   x = as.Date("2020-12-24"), y = .45,
+  #   size = 3.5, color = "grey",
+  #   label = paste0("Average: ", round(mean(cors_over_time$case_cor), 3))
+  # ) +
   scale_y_continuous(expand = expansion(mult = 0), ) +
   scale_x_date(
     expand = expansion(mult = 0),
