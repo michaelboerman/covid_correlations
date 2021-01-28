@@ -34,23 +34,27 @@ First, I'll read in population densities for 264 countries. This data is static 
 
 ```{r, message=FALSE, warning = FALSE}
 # Read in densities
-# Data comes from https://population.un.org/wpp/Download/Standard/Population/ 
+# Data comes from https://population.un.org/wpp/Download/Standard/Population/
 density <- read_csv(here("data_input/pop_density.csv"),
-                    skip = 4) %>% 
-  
+  skip = 4
+) %>%
+
   # drop everything except two columns, and rename while we're here
-  transmute(country = `Country Name`,
-            country_code = `Country Code`,
-            density = `2018`) %>%
-  
-  # if it doesn't have a density estimate, drop it. 
-  drop_na(density) %>% 
-  
+  transmute(
+    country = `Country Name`,
+    country_code = `Country Code`,
+    density = `2018`
+  ) %>%
+
+  # if it doesn't have a density estimate, drop it.
+  drop_na(density) %>%
+
   # Add in the numeric country code, for use late.
-  mutate(country_code_num = countrycode(country_code, 
-                                        origin = "iso3c", 
-                                        destination = "iso3n",
-                                        nomatch = NA)) %>% 
+  mutate(country_code_num = countrycode(country_code,
+    origin = "iso3c",
+    destination = "iso3n",
+    nomatch = NA
+  )) %>%
   identity()
 
 # in developement, I also read-in population counts. This is not needed in the
@@ -63,45 +67,48 @@ Next, we need to load the covid data -- notably, the number of cases and deaths.
 ```{r}
 # See this incredible package https://cran.r-project.org/web/packages/COVID19/index.html
 
-covid_data <- COVID19::covid19(verbose = FALSE) %>% 
-  
+covid_data <- COVID19::covid19(verbose = FALSE) %>%
+
   # rename to match what we have in country_pops dataframe
-  rename(country_code = id) %>% 
-  
+  rename(country_code = id) %>%
+
   # and now join using this column
-  left_join(country_pops, by = "country_code") %>% 
+  left_join(country_pops, by = "country_code") %>%
   identity()
 
 
 last_date_avail <- max(covid_data$date) - 1
 rand_date <- sample(covid_data$date, size = 1)
 
-covid_one_date <- 
-  covid_data %>% 
-  left_join(country_pops, by = "country_code") %>% 
-  filter(date == last_date_avail) %>% 
+covid_one_date <-
+  covid_data %>%
+  left_join(country_pops, by = "country_code") %>%
+  filter(date == last_date_avail) %>%
   identity()
 
 corrs <- cor.test(covid_one_date$confirmed, covid_one_date$density.x)
 
-covid_one_date %>% 
-  drop_na(confirmed, density.x) %>% 
+covid_one_date %>%
+  drop_na(confirmed, density.x) %>%
   ggplot(aes(y = confirmed, x = density.x)) +
   geom_point() +
   scale_y_log10() +
   scale_x_log10() +
-  geom_smooth(method='lm') +
+  geom_smooth(method = "lm") +
   stat_regline_equation() +
   theme_minimal() +
-  theme(axis.title.x = element_text("Population Density"),
-        axis.title.y = element_text("Confirmed Cases"),
-        ) +
-  labs(title = "How do population density and COVID cases relate?",
-       subtitle = paste0("Using data on", last_date_avail)) +
+  theme(
+    axis.title.x = element_text("Population Density"),
+    axis.title.y = element_text("Confirmed Cases"),
+  ) +
+  labs(
+    title = "How do population density and COVID cases relate?",
+    subtitle = paste0("Using data on", last_date_avail)
+  ) +
   geom_rect(xmin = 3, xmax = 10, ymin = 20, ymax = 200, fill = "blue") +
-  annotate("text", x = 4, y = 20, label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2]))
-  NULL
-    
+  annotate("text", x = 4, y = 20, 
+           label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2]))
+NULL
 ```
 
 Now, let's look at a pure pearson's correlation to see how these two move together.
@@ -119,58 +126,57 @@ Let's grab each correlation for a given date. In this dataframe, we have between
 
 ```{r}
 # Grab the individual dates out of our long dataframe
-  unique_dates <- unique(covid_data$date)
+unique_dates <- unique(covid_data$date)
 
 # sort by date, such that Jan 2021 will come at the end, not beginning
-  unique_dates <- unique_dates[order(unique_dates)]
+unique_dates <- unique_dates[order(unique_dates)]
 
 # (I can't wait for R 4.1 native pipes... :) )
 
 # initialize a DF to put in each date's correlation
-  cors_over_time <- data.frame(
-    "date" = unique_dates,
-    "death_cor" = rep(NA, length(unique_dates)),
-    "case_cor" = rep(NA, length(unique_dates))
-    )
-  
+cors_over_time <- data.frame(
+  "date" = unique_dates,
+  "death_cor" = rep(NA, length(unique_dates)),
+  "case_cor" = rep(NA, length(unique_dates))
+)
+
 # for loop for calculating correlation per date
-  for (i in 1:length(unique_dates)) {
-    
-    # grab the data frame for that date i
-    filtered_date_data <- covid_data %>% 
-      filter(date == unique_dates[i]) %>% 
-      identity()
-    
-    # insert correlation between pop density and deaths
-    cors_over_time$death_cor[i] <- cor(filtered_date_data$density, filtered_date_data$deaths, use = "complete.obs")
-    
-    # insert correlation between pop density and confirmed cases
-    cors_over_time$case_cor[i] <- cor(filtered_date_data$density, filtered_date_data$confirmed, use = "complete.obs")
-    
-    # insert the number of countries in the sampled date
-    cors_over_time$n_countries_deaths[i] <- 
-      filtered_date_data %>% 
-      drop_na(deaths) %>% 
-      nrow()
-  }
+for (i in 1:length(unique_dates)) {
+
+  # grab the data frame for that date i
+  filtered_date_data <- covid_data %>%
+    filter(date == unique_dates[i]) %>%
+    identity()
+
+  # insert correlation between pop density and deaths
+  cors_over_time$death_cor[i] <- cor(filtered_date_data$density, filtered_date_data$deaths, use = "complete.obs")
+
+  # insert correlation between pop density and confirmed cases
+  cors_over_time$case_cor[i] <- cor(filtered_date_data$density, filtered_date_data$confirmed, use = "complete.obs")
+
+  # insert the number of countries in the sampled date
+  cors_over_time$n_countries_deaths[i] <-
+    filtered_date_data %>%
+    drop_na(deaths) %>%
+    nrow()
+}
 
 # Early on in 2020, there are very few countries with deaths.
-# A correlation on just a few data points is not much of a correlation at all, so I will filter these out. 
-# Cant do a simple filter, because deaths are NOT non-decreasing. 
+# A correlation on just a few data points is not much of a correlation at all, so I will filter these out.
+# Cant do a simple filter, because deaths are NOT non-decreasing.
 # I don't want gaps in a time series!
 
 # Find the first time there are at least 15 countries:
-cutoff <- 
-  cors_over_time %>% 
-    arrange(n_countries_deaths) %>% 
-    filter(n_countries_deaths >=15) %>% 
-    head(n=1) %>% 
-    pull(date) %>% 
-    ymd()
+cutoff <-
+  cors_over_time %>%
+  arrange(n_countries_deaths) %>%
+  filter(n_countries_deaths >= 15) %>%
+  head(n = 1) %>%
+  pull(date) %>%
+  ymd()
 
 # and then re-assign only dates above this cutoff limit
 cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
-  
 ```
 
 Now, let's plot!
@@ -178,73 +184,90 @@ Now, let's plot!
 ```{r}
 # Now let's do away with the icky for loop
 pmap(list(
-      series_covid <- c("death_cor", "case_cor"),
-      series_title <- c("Deaths", "Cases"),
-      series_means <- c(mean(cors_over_time$death_cor),
-           mean(cors_over_time$case_cor))
-      ),
-    .f = function(series_covid, series_title, series_means) { 
-cors_over_time %>% 
-        
-  # remove last two obs, since not all countries have results.
-  head(-2) %>% 
-        
-  # continue with plotting
-  ggplot(aes(x = date))+
-  geom_line(aes(y = !! sym(series_covid))) + 
-  theme_minimal() +
-  geom_hline(yintercept = 0)+
-  # geom_hline(yintercept = series_means,
-  #            linetype = "dashed", color = "gray") +
-  # annotate("text", 
-  #          x = as.Date("2020-12-24"), y = -.065, 
-  #          size = 3.5, color = "grey", 
-  #          label = paste0("Average: ", round(series_means, 3))) +
-  scale_y_continuous(expand = expansion(mult=0),
-                     limits = c(-0.25, 0.25)) +
-  scale_x_date(expand = expansion(mult = 0),
-               date_breaks = "2 months",
-               date_labels = "%B",
-               minor_breaks = "1 month") +
-  labs(title = paste0("Correlation between Population Density and COVID ", series_title, " Across Countries"),
-       subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-       caption = "Source: UN Population Dynamics; Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
-  ylab("Correlation") +
-  theme(text = element_text(family="serif"),
-        axis.title.x = element_blank(),
-        axis.line.y = element_line()) +
-  ggsave(filename = here(paste0("plots/global_cor_density_", series_title, ".jpg")), width = 12, height = 6) +
-  NULL
-})
+  series_covid <- c("death_cor", "case_cor"),
+  series_title <- c("Deaths", "Cases"),
+  series_means <- c(
+    mean(cors_over_time$death_cor),
+    mean(cors_over_time$case_cor)
+  )
+),
+.f = function(series_covid, series_title, series_means) {
+  cors_over_time %>%
+
+    # remove last two obs, since not all countries have results.
+    head(-2) %>%
+
+    # continue with plotting
+    ggplot(aes(x = date)) +
+    geom_line(aes(y = !!sym(series_covid))) +
+    theme_minimal() +
+    geom_hline(yintercept = 0) +
+    # geom_hline(yintercept = series_means,
+    #            linetype = "dashed", color = "gray") +
+    # annotate("text",
+    #          x = as.Date("2020-12-24"), y = -.065,
+    #          size = 3.5, color = "grey",
+    #          label = paste0("Average: ", round(series_means, 3))) +
+    scale_y_continuous(
+      expand = expansion(mult = 0),
+      limits = c(-0.25, 0.25)
+    ) +
+    scale_x_date(
+      expand = expansion(mult = 0),
+      date_breaks = "2 months",
+      date_labels = "%B",
+      minor_breaks = "1 month"
+    ) +
+    labs(
+      title = paste0("Correlation between Population Density and COVID ", series_title, " Across Countries"),
+      subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+      caption = "Source: UN Population Dynamics; Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman"
+    ) +
+    ylab("Correlation") +
+    theme(
+      text = element_text(family = "serif"),
+      axis.title.x = element_blank(),
+      axis.line.y = element_line()
+    ) +
+    ggsave(filename = here(paste0("plots/global_cor_density_", series_title, ".jpg")), width = 12, height = 6) +
+    NULL
+}
+)
 ```
 
 I'd like to plot the number of countries used for each correlation. This could be included on the above plots using a secondary axis (right side), but I don't want to make it too messy or convoluted. I can show the same info using the same axis and styling.
 
 ```{r}
-cors_over_time %>% 
-          
+cors_over_time %>%
+
   # remove last two obs, since not all countries have results.
-  head(-2) %>% 
-        
+  head(-2) %>%
+
   # continue with plotting
-  ggplot(aes(x = date))+
-  geom_line(aes(y = n_countries_deaths)) + 
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = n_countries_deaths)) +
   theme_minimal() +
-  scale_y_continuous(expand = expansion(mult=0),
-                     limits = c(0, 200)) +
-  scale_x_date(expand = expansion(mult = 0),
-               date_breaks = "2 months",
-               date_labels = "%B",
-               minor_breaks = "1 month") +
-  labs(title = "Number of Countries used for Each Correlation",
-       subtitle = paste0("Data starts on ", min(cors_over_time$date), " , which is the first day with deaths in at least 15 countries."),
-       caption = "Source: Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman") +
+  scale_y_continuous(
+    expand = expansion(mult = 0),
+    limits = c(0, 200)
+  ) +
+  scale_x_date(
+    expand = expansion(mult = 0),
+    date_breaks = "2 months",
+    date_labels = "%B",
+    minor_breaks = "1 month"
+  ) +
+  labs(
+    title = "Number of Countries used for Each Correlation",
+    subtitle = paste0("Data starts on ", min(cors_over_time$date), " , which is the first day with deaths in at least 15 countries."),
+    caption = "Source: Oxford COVID-19 Government Response Tracker. \n Chart: Michael Boerman, https://github.com/michaelboerman"
+  ) +
   ylab("Number of Countries") +
-  theme(text = element_text(family="serif"),
-        axis.title.x = element_blank(),
-        axis.line = element_line()) +
+  theme(
+    text = element_text(family = "serif"),
+    axis.title.x = element_blank(),
+    axis.line = element_line()
+  ) +
   ggsave(filename = here("plots/global_cor_countries.jpg"), width = 12, height = 6) +
   NULL
 ```
-
-
