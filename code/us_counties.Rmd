@@ -6,14 +6,20 @@ output: html_notebook
 This notebook is self-contained to produce correlations between population density and COVID case count for us counties. 
 
 
-```{r, echo = FALSE}
+```{r, message = FALSE, warning=FALSE}
+# universal settings
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 options(tidyverse.quiet = TRUE)
+
+# load libraries
 library(plyr)
 library(tidyverse)
 library(lubridate)
 library(rvest)
 library(here)
+
+# my plotting functions
+source("plot_cors.R")
 ```
 
 ## Read County demographics
@@ -155,115 +161,47 @@ cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
 
 ## Plots
 
-Everyone's favorite part :)
+
+Everyone's favorite part :) I source a script with three plotting functions.
 ```{r}
-cors_over_time %>%
-
-  # remove last two obs, since some counties delay reporting.
-  head(-2) %>%
-
-  # continue with plotting
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = case_cor)) +
-  theme_minimal() +
-  geom_hline(yintercept = 0) +
-  # geom_hline(
-  #   yintercept = mean(cors_over_time$case_cor),
-  #   linetype = "dashed", color = "gray"
-  # ) +
-  # annotate("text",
-  #   x = as.Date("2020-12-24"), y = .45,
-  #   size = 3.5, color = "grey",
-  #   label = paste0("Average: ", round(mean(cors_over_time$case_cor), 3))
-  # ) +
-  scale_y_continuous(expand = expansion(mult = 0), ) +
-  scale_x_date(
-    expand = expansion(mult = 0),
-    date_breaks = "2 months",
-    date_labels = "%B",
-    minor_breaks = "1 month"
-  ) +
-  labs(
-    title = paste0("Correlation Population Density and COVID Cases over each US County"),
-    subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
-  ) +
-  ylab("Correlation") +
-  theme(
-    text = element_text(family = "serif"),
-    axis.title.x = element_blank(),
-    axis.line.y = element_line()
-  ) +
-  ggsave(filename = here(paste0("plots/us_cor_density_cases.jpg")), width = 12, height = 6) +
-  NULL
+plot_correlations(df = cors_over_time,
+                  x_series = "date",
+                  y_series = "case_cor",
+                  title = paste0("Correlation Population Density and COVID Cases over each US County"),
+                  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+                  caption = paste0("Data: US Census; JHU CSSE. \n Calculations; Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2),
+                  filename = "us_cor_density_cases")
 ```
+
+
+
 
 
 Plot just the number of counties
 ```{r}
-cors_over_time %>%
-
-  # remove last two obs, since not all countries have results.
-  head(-2) %>%
-
-  # continue with plotting
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = n_counties_cases)) +
-  theme_minimal() +
-  scale_y_continuous(
-    expand = expansion(mult = 0),
-    limits = c(0, 3000)
-  ) +
-  scale_x_date(
-    expand = expansion(mult = 0),
-    date_breaks = "2 months",
-    date_labels = "%B",
-    minor_breaks = "1 month"
-  ) +
-  labs(
-    title = "Number of Counties used for Each Correlation",
-    subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with cases in at least 20 counties."),
-    caption = paste0("Source: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2)
-  ) +
-  ylab("Number of Counties") +
-  theme(
-    text = element_text(family = "serif"),
-    axis.title.x = element_blank(),
-    axis.line = element_line()
-  ) +
-  ggsave(filename = here("plots/us_n_counties.jpg"), width = 12, height = 6) +
-  NULL
+plot_obs_used(
+  data = cors_over_time,
+  x_series = "date",
+  y_series = "n_counties_cases",
+  title    = "Number of U.S. Counties used for Each Correlation",
+  subtitle = paste0("Data starts on ", min(cors_over_time$date), " which is the first day with cases in at least 20 counties."),
+  caption  = paste0("Data: US Census; JHU CSSE. \n Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for U.S. counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2),
+  filename = "us_n_counties", 
+  )
 ```
 
 Pull out just one date and plot:
 ```{r}
-last_date_avail <- max(county_level_data$date) - 1
-rand_date       <- sample(county_level_data$date, size = 1)
-
-covid_one_date <-
-  county_level_data %>%
-  filter(date == last_date_avail) %>%
-  identity()
-
-corrs <- cor.test(covid_one_date$cases, covid_one_date$pop_density)
-
-covid_one_date %>%
-  drop_na(cases, pop_density) %>%
-  ggplot(aes(y = cases, x = pop_density)) +
-  geom_point() +
-  scale_y_log10() +
-  scale_x_log10() +
-  geom_smooth(method = "lm") +
-  stat_regline_equation() +
-  theme_minimal() +
-  labs(
-    title = "How do population density and COVID cases relate?",
-    subtitle = paste0("Using data on ", last_date_avail)
-  ) +
-  ylab("Confirmed Cases") +
-  xlab("Population Density") +
-  annotate("text", x = 0.1, y = 20000, 
-           label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2])) +
-  ggsave(here::here("plots/us_one_date_cases.jpg"), width = 12, height = 6)
+plot_one_date(
+  df = county_level_data,
+  date = "last",
+  x_series = "pop_density",
+  y_series = "cases",
+  title = "How do population density and COVID cases relate?",
+  subtitle = paste0("Using data U.S. County-level data on ", 
+                    format(one_date, "%B %d, %Y")),
+  caption = "Data: JHU CSSE\n Calculation; Chart: Michael Boerman github.com/michaelboerman",
+  filename = "us_one_date_cases"
+)
 ```
 
