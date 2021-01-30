@@ -21,7 +21,7 @@
 
 
 # function name: plot_correlations
-plot_correlations <- function(df, x_series, y_series, title, subtitle, caption, filename, avg_line = FALSE){
+plot_correlations <- function(df, x_series, y_series, ylim, title, subtitle, caption, filename, avg_line = FALSE){
 
   df %>%
     
@@ -33,7 +33,8 @@ plot_correlations <- function(df, x_series, y_series, title, subtitle, caption, 
     geom_line(aes(y = !!sym(y_series))) +
     theme_minimal() +
     geom_hline(yintercept = 0) +
-    scale_y_continuous(expand = expansion(mult = 0), ) +
+    scale_y_continuous(expand = expansion(mult = 0), 
+                       limits = c(-ylim, ylim)) +
     scale_x_date(
       expand = expansion(mult = 0),
       date_breaks = "2 months",
@@ -74,7 +75,7 @@ plot_obs_used <- function(data, x_series, y_series, title, subtitle, caption, fi
     theme_minimal() +
     scale_y_continuous(
       expand = expansion(mult = 0),
-      limits = c(0, 3000)
+      limits = c(0, round(max((data[, y_series])), -1) + 10)
     ) +
     scale_x_date(
       expand = expansion(mult = 0),
@@ -102,11 +103,10 @@ plot_obs_used <- function(data, x_series, y_series, title, subtitle, caption, fi
 ### PLOT JUST ONE DATE ###
 plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle, caption, filename, avg_line = FALSE) {
   
-  
   if (date == "last"){
-    one_date <- max(county_level_data$date) - 1
+    one_date <- max(df$date) - 1
   } else if (date == "rand") {
-    one_date <- sample(county_level_data$date, size = 1)
+    one_date <- sample(df$date, size = 1)
   } else if (is.Date(date)) {
     one_date <- date
   }
@@ -134,7 +134,7 @@ plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle
     ) +
     ylab("Confirmed Cases") +
     xlab("Population Density") +
-    annotate("text", x = 0.1, y = 20000, 
+    annotate("text", x = 0.5, y = 20000, 
              label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2])) +
     ggsave(paste0(here::here("plots"), "/", filename, ".jpg"), 
            width = 12, height = 6)
