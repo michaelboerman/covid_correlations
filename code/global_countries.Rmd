@@ -28,7 +28,7 @@ library(ggpubr)
 library(here)
 
 # call the function file for plots
-source(here("code/plot_cors.R"))
+source(here::here("code/plot_cors.R"))
 ```
 
 ## Research Question: Does population density correlate with COVID-19 deaths or cases?
@@ -96,7 +96,7 @@ plot_one_date(
   y_series = "confirmed",
   title = "How do population density and COVID cases relate?",
   subtitle = paste0("Using global-level data on ", 
-                    format(Sys.Date(), "%B %d, %Y")),
+                    format(Sys.Date()-1, "%B %d, %Y")),
   caption = "Data: JHU CSSE\n Calculation; Chart: Michael Boerman github.com/michaelboerman",
   filename = "global_one_date_cases"
 )
@@ -151,6 +151,11 @@ for (i in 1:length(unique_dates)) {
     filtered_date_data %>%
     drop_na(deaths) %>%
     nrow()
+  
+    cors_over_time$n_countries_cases[i] <-
+    filtered_date_data %>%
+    drop_na(confirmed) %>%
+    nrow()
 }
 
 # Early on in 2020, there are very few countries with deaths.
@@ -158,11 +163,11 @@ for (i in 1:length(unique_dates)) {
 # Cant do a simple filter, because deaths are NOT non-decreasing.
 # I don't want gaps in a time series!
 
-# Find the first time there are at least 15 countries:
+# Find the first time there are at least 20 countries:
 cutoff <-
   cors_over_time %>%
-  arrange(n_countries_deaths) %>%
-  filter(n_countries_deaths >= 15) %>%
+  arrange(n_countries_cases) %>%
+  filter(n_countries_cases >= 20) %>%
   head(n = 1) %>%
   pull(date) %>%
   ymd()
@@ -181,9 +186,9 @@ plot_correlations(df = cors_over_time,
                   x_series = "date",
                   y_series = "case_cor",
                   ylim <- 0.25,
-                  title = "Correlation between Population Density and COVID Cases Across Countries",
+                  title = "Correlation between Population Density and COVID Cases across Countries",
                   subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-                  caption = "Data: UN Population Dynamics; Oxford COVID-19 Government Response Tracker. \n Calculations; Chart: Michael Boerman, https://github.com/michaelboerman",
+                  caption = "Data: UN Population Dynamics; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman",
                   filename = "global_cor_density_cases")
 
 # Deaths:
@@ -191,9 +196,9 @@ plot_correlations(df = cors_over_time,
                   x_series = "date",
                   y_series = "death_cor",
                   ylim <- 0.25,
-                  title = "Correlation between Population Density and COVID Deaths Across Countries",
+                  title = "Correlation between Population Density and COVID Deaths across Countries",
                   subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-                  caption = "Data: UN Population Dynamics; Oxford COVID-19 Government Response Tracker. \n Calculations; Chart: Michael Boerman, https://github.com/michaelboerman",
+                  caption = "Data: UN Population Dynamics; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman",
                   filename = "global_cor_density_deaths")
 
 ```
@@ -204,10 +209,10 @@ I'd like to plot the number of countries used for each correlation. This could b
 plot_obs_used(
   data = cors_over_time,
   x_series = "date",
-  y_series = "n_countries_deaths",
+  y_series = "n_countries_cases",
   title    = "Number of Counties or Regions used for Each Correlation",
-  subtitle = paste0("Data starts on ", format(min(cors_over_time$date), "%B %d, %Y"), " which is the first day with cases in at least 20 counties."),
-  caption  = paste0("Data: JHU CSSE. \n Calculations; Chart: Michael Boerman, https://github.com/michaelboerman \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2),
+  subtitle = paste0("Data starts on ", format(min(cors_over_time$date), "%B %d, %Y"), " which is the first day with cases in at least 20 regions"),
+  caption  = paste0("Data: JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman"),
   filename = "global_n_countries", 
   )
 ```

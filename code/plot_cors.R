@@ -12,12 +12,12 @@
 #   filename:     name of file for the resulting plot (excluding path and extension)
 
 # TEST VALUES
-# x_series =
-# y_series =
-# title    =
-# subtitle =
-# caption  = 
-# filename =
+# x_series <- 
+# y_series <- 
+# title    <- 
+# subtitle <- 
+# caption  <- 
+# filename <- 
 
 
 # function name: plot_correlations
@@ -118,12 +118,21 @@ plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle
   corrs <- cor.test(pull(covid_one_date[, x_series]), 
                     pull(covid_one_date[, y_series]))
   
+  # set the annotation position
+  if (deparse(substitute(df)) == "county_level_data") { #us county
+    annotation_x <- 0.075
+    annotation_y <- 100000
+  } else {
+    annotation_x <- 3.0
+    annotation_y <- 5000
+  }
+  
   covid_one_date %>%
     drop_na(x_series, y_series) %>%
     ggplot(aes(x = !!sym(x_series), y = !!sym(y_series))) +
     geom_point() +
-    scale_y_log10() +
-    scale_x_log10() +
+    scale_y_log10(labels = scales::comma) +
+    scale_x_log10(labels = scales::comma) +
     geom_smooth(method = "lm") +
     ggpubr::stat_regline_equation() +
     theme_minimal() +
@@ -134,7 +143,8 @@ plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle
     ) +
     ylab("Confirmed Cases") +
     xlab("Population Density") +
-    annotate("text", x = 0.5, y = 20000, 
+    annotate("text", x = annotation_x, y = annotation_y, 
+             size = 3,
              label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2])) +
     ggsave(paste0(here::here("plots"), "/", filename, ".jpg"), 
            width = 12, height = 6)
