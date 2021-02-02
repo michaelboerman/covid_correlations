@@ -124,7 +124,7 @@ plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle
     annotation_y <- 100000
   } else {
     annotation_x <- 3.0
-    annotation_y <- 5000
+    annotation_y <- 800000
   }
   
   covid_one_date %>%

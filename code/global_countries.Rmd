@@ -210,7 +210,7 @@ plot_obs_used(
   data = cors_over_time,
   x_series = "date",
   y_series = "n_countries_cases",
-  title    = "Number of Counties or Regions used for Each Correlation",
+  title    = "Number of Countries or Regions used for Each Correlation",
   subtitle = paste0("Data starts on ", format(min(cors_over_time$date), "%B %d, %Y"), " which is the first day with cases in at least 20 regions"),
   caption  = paste0("Data: JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman"),
   filename = "global_n_countries", 
