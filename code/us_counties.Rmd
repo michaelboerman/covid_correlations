@@ -116,8 +116,10 @@ plot_one_date(
   x_series = "pop_density",
   y_series = "cases",
   title = "How do population density and COVID cases relate?",
-  subtitle = paste0("Using U.S. County-level data on ", 
-                    format(Sys.Date()-1, "%B %d, %Y")),
+  subtitle = paste0(
+    "Using U.S. County-level data on ",
+    format(Sys.Date() - 1, "%B %d, %Y")
+  ),
   caption = "Data: US Census; JHU CSSE.\n Calculations & Chart: Michael Boerman github.com/michaelboerman",
   filename = "us_one_date_cases"
 )
@@ -179,14 +181,16 @@ cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
 
 Everyone's favorite part :) I source a script with three plotting functions.
 ```{r}
-plot_correlations(df = cors_over_time,
-                  x_series = "date",
-                  y_series = "case_cor",
-                  ylim <- 0.8,
-                  title = paste0("Correlation Population Density and COVID Cases over each US County"),
-                  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-                  caption = paste0("Data: US Census; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for all U.s. counties excluding those from GA, HI, ID, and DC."),
-                  filename = "us_cor_density_cases")
+plot_correlations(
+  df = cors_over_time,
+  x_series = "date",
+  y_series = "case_cor",
+  ylim <- 0.8,
+  title = paste0("Correlation Population Density and COVID Cases over each US County"),
+  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+  caption = paste0("Data: US Census; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for all U.s. counties excluding those from GA, HI, ID, and DC."),
+  filename = "us_cor_density_cases"
+)
 ```
 
 
@@ -197,11 +201,9 @@ plot_obs_used(
   data = cors_over_time,
   x_series = "date",
   y_series = "n_counties_cases",
-  title    = "Number of U.S. Counties used for Each Correlation",
+  title = "Number of U.S. Counties used for Each Correlation",
   subtitle = paste0("Data starts on ", format(min(cors_over_time$date), "%B %d, %Y"), " which is the first day with cases in at least 20 counties."),
-  caption  = paste0("Data: JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for U.S. counties excluding from GA, HI, ID, and DC. \n Data from ", min(cors_over_time$date), " to ", max(cors_over_time$date) - 2),
-  filename = "us_n_counties", 
-  )
+  caption = paste0("Data: JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman \n Data is taken for U.S. counties excluding from GA, HI, ID, and DC."),
+  filename = "us_n_counties",
+)
 ```
-
-

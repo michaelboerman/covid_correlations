@@ -83,7 +83,6 @@ covid_data <- COVID19::covid19(verbose = FALSE) %>%
   # and now join using this column
   left_join(country_pops, by = "country_code") %>%
   identity()
-
 ```
 
 Now we can plot!
@@ -95,12 +94,13 @@ plot_one_date(
   x_series = "density",
   y_series = "confirmed",
   title = "How do population density and COVID cases relate?",
-  subtitle = paste0("Using global-level data on ", 
-                    format(Sys.Date()-1, "%B %d, %Y")),
+  subtitle = paste0(
+    "Using global-level data on ",
+    format(Sys.Date() - 1, "%B %d, %Y")
+  ),
   caption = "Data: JHU CSSE\n Calculation; Chart: Michael Boerman github.com/michaelboerman",
   filename = "global_one_date_cases"
 )
-
 ```
 
 Now, let's look at a pure pearson's correlation to see how these two move together.
@@ -127,9 +127,9 @@ unique_dates <- unique_dates[order(unique_dates)]
 
 # initialize a DF to put in each date's correlation
 cors_over_time <- data.frame(
-  "date" = unique_dates,
+  "date"      = unique_dates,
   "death_cor" = rep(NA, length(unique_dates)),
-  "case_cor" = rep(NA, length(unique_dates))
+  "case_cor"  = rep(NA, length(unique_dates))
 )
 
 # for loop for calculating correlation per date
@@ -151,8 +151,8 @@ for (i in 1:length(unique_dates)) {
     filtered_date_data %>%
     drop_na(deaths) %>%
     nrow()
-  
-    cors_over_time$n_countries_cases[i] <-
+
+  cors_over_time$n_countries_cases[i] <-
     filtered_date_data %>%
     drop_na(confirmed) %>%
     nrow()
@@ -180,27 +180,30 @@ Now, let's plot!
 
 ```{r}
 # Now let's do away with the icky for loop
-# 
+#
 # Cases:
-plot_correlations(df = cors_over_time,
-                  x_series = "date",
-                  y_series = "case_cor",
-                  ylim <- 0.25,
-                  title = "Correlation between Population Density and COVID Cases across Countries",
-                  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-                  caption = "Data: UN Population Dynamics; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman",
-                  filename = "global_cor_density_cases")
+plot_correlations(
+  df = cors_over_time,
+  x_series = "date",
+  y_series = "case_cor",
+  ylim <- 0.25,
+  title = "Correlation between Population Density and COVID Cases across Countries",
+  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+  caption = "Data: UN Population Dynamics; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman",
+  filename = "global_cor_density_cases"
+)
 
 # Deaths:
-plot_correlations(df = cors_over_time,
-                  x_series = "date",
-                  y_series = "death_cor",
-                  ylim <- 0.25,
-                  title = "Correlation between Population Density and COVID Deaths across Countries",
-                  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
-                  caption = "Data: UN Population Dynamics; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman",
-                  filename = "global_cor_density_deaths")
-
+plot_correlations(
+  df = cors_over_time,
+  x_series = "date",
+  y_series = "death_cor",
+  ylim <- 0.25,
+  title = "Correlation between Population Density and COVID Deaths across Countries",
+  subtitle = "Each correlation shown is calculated using data just for that date, not cumulative.",
+  caption = "Data: UN Population Dynamics; JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman",
+  filename = "global_cor_density_deaths"
+)
 ```
 
 I'd like to plot the number of countries used for each correlation. This could be included on the above plots using a secondary axis (right side), but I don't want to make it too messy or convoluted. I can show the same info using the same axis and styling.
@@ -210,9 +213,9 @@ plot_obs_used(
   data = cors_over_time,
   x_series = "date",
   y_series = "n_countries_cases",
-  title    = "Number of Countries or Regions used for Each Correlation",
+  title = "Number of Countries or Regions used for Each Correlation",
   subtitle = paste0("Data starts on ", format(min(cors_over_time$date), "%B %d, %Y"), " which is the first day with cases in at least 20 regions"),
-  caption  = paste0("Data: JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman"),
-  filename = "global_n_countries", 
-  )
+  caption = paste0("Data: JHU CSSE. \n Calculations & Chart: Michael Boerman, https://github.com/michaelboerman"),
+  filename = "global_n_countries",
+)
 ```
