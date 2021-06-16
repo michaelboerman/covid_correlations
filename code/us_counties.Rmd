@@ -7,7 +7,7 @@ This notebook is self-contained to produce correlations between population densi
 
 
 ```{r, message = FALSE, warning=FALSE}
-# universal settings
+# universal settings for rmd and for library
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 options(tidyverse.quiet = TRUE)
 
@@ -18,14 +18,14 @@ library(lubridate)
 library(rvest)
 library(here)
 
-# my plotting functions
+# load my plotting functions
 source("plot_cors.R")
 ```
 
 ## Read County demographics
 First, we read in the county population and area data:
-```{r}
-# first, grab all the 50 state url
+```{r STATE-DATA}
+# first, grab all the 50 state urls in one list.
 state_urls <- paste0(
   "https://tigerweb.geo.census.gov/tigerwebmain/Files/tab20/tigerweb_tab20_county_2010_",
   tolower(state.abb),
@@ -33,7 +33,12 @@ state_urls <- paste0(
 )
 
 # for some reason, data on GA, HI, and ID don't exist...
-state_urls <- state_urls[-c(10:12)]
+# so filter out where the url contains these abbreviations using regex.
+state_urls <- state_urls %>% 
+  tibble() %>% 
+  rename(url = '.') %>% 
+  filter(!str_detect(url, "ga|hi|id")) %>% 
+  pull() # to go back to character vector
 
 # next, perform a loop to actually read these urls.
 # these are displayed as an html table, so use `rvest` to translate to dataframe.
@@ -47,7 +52,12 @@ county_areas_list <-
     )
   })
 
-names(county_areas_list) <- state.name[-c(10:12)]
+# name each in the list to be the state name, but again remove those absent states.
+names(county_areas_list) <- state.name %>% 
+  tibble() %>% 
+  rename(state = '.') %>% 
+  filter(!str_detect(state, "Georgia|Hawaii|Idaho")) %>% 
+  pull()
 
 # Now, I'd like to turn this list into a dataframe
 # I prefer this tidy function over a `do.call`
@@ -101,7 +111,7 @@ county_level_data <- plyr::join(
     values_to = "cases"
   ) %>%
 
-  # turn the new column type
+  # turn the new column type with formatting.
   mutate(date = as.Date(date, "%m/%d/%y")) %>%
 
   identity()
@@ -109,7 +119,10 @@ county_level_data <- plyr::join(
 
 ## Explore relationship
 I'd like to sample some date to see what the relationship looks like.
+This is "exploratory analysis".
 ```{r}
+
+# function comes from the script source in first chunk.
 plot_one_date(
   df = county_level_data,
   date = "last",
@@ -141,6 +154,8 @@ cors_over_time <- data.frame(
 )
 
 # for loop for calculating correlation per date
+# This differs from just one correlation across time, which is statistically inappropriate
+# because of dependence. Instead, this is correlation between cases/pop for *one* date! 
 for (i in 1:length(unique_dates)) {
 
   # grab the data frame for that date i

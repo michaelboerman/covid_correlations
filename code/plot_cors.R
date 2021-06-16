@@ -11,7 +11,7 @@
 #   average line: logical if you want to include the average line
 #   filename:     name of file for the resulting plot (excluding path and extension)
 
-# TEST VALUES
+### TEST VALUES
 # x_series <-
 # y_series <-
 # title    <-
@@ -106,18 +106,24 @@ plot_obs_used <- function(data, x_series, y_series, title, subtitle, caption, fi
 # -----------------------------------------------------------------------------#
 ### PLOT JUST ONE DATE ###
 plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle, caption, filename, avg_line = FALSE) {
+  
+  # input parameter default to "last", but can be "rand" or a date. Else, error.
   if (date == "last") {
     one_date <- max(df$date) - 1
   } else if (date == "rand") {
     one_date <- sample(df$date, size = 1)
   } else if (is.Date(date)) {
     one_date <- date
+  } else {
+    stop("The date should be one of: 'last', 'rand', or a date object.")
   }
 
+  # from the full dataframe, grab just the one date of interest.
   covid_one_date <-
     df %>%
     filter(date == one_date)
 
+  # grab correlation between the two. 
   corrs <- cor.test(
     pull(covid_one_date[, x_series]),
     pull(covid_one_date[, y_series])
