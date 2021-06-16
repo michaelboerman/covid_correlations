@@ -121,7 +121,9 @@ Let's grab each correlation for a given date. In this dataframe, we have between
 unique_dates <- unique(covid_data$date)
 
 # sort by date, such that Jan 2021 will come at the end, not beginning
-unique_dates <- unique_dates[order(unique_dates)]
+# skip the last day, "today", because not all data will be in for all countries.
+unique_dates <- unique_dates[order(unique_dates)] %>% head(length(unique_dates)-1)
+
 
 # (I can't wait for R 4.1 native pipes... :) )
 
@@ -173,7 +175,8 @@ cutoff <-
   ymd()
 
 # and then re-assign only dates above this cutoff limit
-cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
+cors_over_time <- cors_over_time %>% 
+  filter(date > cutoff)
 ```
 
 Now, let's plot!
