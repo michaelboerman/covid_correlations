@@ -52,12 +52,12 @@ plot_correlations <- function(df, x_series, y_series, ylim, title, subtitle, cap
       text = element_text(family = "serif"),
       axis.title.x = element_blank(),
       axis.line.y = element_line()
-    ) +
+    ) 
+  
     ggsave(
       filename = here(paste0("plots/", filename, ".jpg")),
       width = 12, height = 6
-    ) +
-    NULL
+    )
 }
 
 # -----------------------------------------------------------------------------#
@@ -95,12 +95,12 @@ plot_obs_used <- function(data, x_series, y_series, title, subtitle, caption, fi
       text = element_text(family = "serif"),
       axis.title.x = element_blank(),
       axis.line = element_line()
-    ) +
+    ) 
+  
     ggsave(
       filename = paste0(here::here("plots"), "/", filename, ".jpg"),
       width = 12, height = 6
-    ) +
-    NULL
+    ) 
 }
 
 # -----------------------------------------------------------------------------#
@@ -158,7 +158,8 @@ plot_one_date <- function(df, date = "last", x_series, y_series, title, subtitle
       x = annotation_x, y = annotation_y,
       size = 3,
       label = paste0("95% Interval on\n Correlation: \n", round(corrs$conf.int, 2)[1], " to ", round(corrs$conf.int, 2)[2])
-    ) +
+    ) 
+  
     ggsave(paste0(here::here("plots"), "/", filename, ".jpg"),
       width = 12, height = 6
     )

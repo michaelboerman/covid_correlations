@@ -1,12 +1,12 @@
 ---
 title: "US Counties"
+author: "Michael Boerman"
 output: html_notebook
 ---
 
-This notebook is self-contained to produce correlations between population density and COVID case count for us counties. 
+This notebook is self-contained to produce correlations between population density and COVID case count for us counties.
 
-
-```{r, message = FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 # universal settings for rmd and for library
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 options(tidyverse.quiet = TRUE)
@@ -23,7 +23,9 @@ source("plot_cors.R")
 ```
 
 ## Read County demographics
+
 First, we read in the county population and area data:
+
 ```{r STATE-DATA}
 # first, grab all the 50 state urls in one list.
 state_urls <- paste0(
@@ -92,6 +94,7 @@ covid <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/mas
 ## Combine Data
 
 Now, we have two dataframes -- one for county population density and one for county covid cases over time -- and can join them together!
+
 ```{r}
 county_level_data <- plyr::join(
   x = county_areas,
@@ -118,8 +121,9 @@ county_level_data <- plyr::join(
 ```
 
 ## Explore relationship
-I'd like to sample some date to see what the relationship looks like.
-This is "exploratory analysis".
+
+I'd like to sample some date to see what the relationship looks like. This is "exploratory analysis".
+
 ```{r}
 
 # function comes from the script source in first chunk.
@@ -141,15 +145,15 @@ plot_one_date(
 ## Calculate Correlations
 
 Now let's do our usual correlations for each date.
+
 ```{r}
 # Grab the individual dates out of our long dataframe
-unique_dates <- unique(county_level_data$date)
-
 # These are already in order :)
+unique_dates <- county_level_data %>% select(date) %>% unique() %>% pull()
 
 # initialize a DF to put in each date's correlation
 cors_over_time <- data.frame(
-  "date" = unique_dates,
+  "date"     = unique_dates,
   "case_cor" = rep(NA, length(unique_dates))
 )
 
@@ -195,6 +199,7 @@ cors_over_time <- cors_over_time[which(cors_over_time$date > cutoff), ]
 ## Plots
 
 Everyone's favorite part :) I source a script with three plotting functions.
+
 ```{r}
 plot_correlations(
   df = cors_over_time,
@@ -208,9 +213,8 @@ plot_correlations(
 )
 ```
 
-
-
 Plot just the number of counties used at each date.
+
 ```{r}
 plot_obs_used(
   data = cors_over_time,
